@@ -1,0 +1,65 @@
+[project]
+name = "nakitce"
+version = "1.0.0"
+description = "Esnafın satışını, veresiye hesabını, stokunu ve günlük nakit akışını tek yerden yönettiği Türkçe mobil iş defteri."
+requires-python = ">=3.12"
+authors = [
+    { name = "Miras Teknoloji", email = "teknolojimiras@gmail.com" }
+]
+dependencies = [
+    "flet",
+    "httpx2",
+    "flet-camera",
+    "pypdf",
+]
+
+[dependency-groups]
+dev = [
+    "flet-cli",
+    "flet-desktop",
+    "flet-web"
+]
+
+[tool.flet.metadata]
+title = "Nakitçe"
+
+[tool.flet]
+org = "com.mirasteknoloji"
+product = "Nakitçe"
+company = "Miras Teknoloji"
+copyright = "Copyright (C) 2026 by Miras Teknoloji"
+build_number = 1
+icon_background = "#0B1C2C"
+# Camera for optional receipt photos; internet for membership/sync/external links.
+permissions = ["camera"]
+
+[tool.flet.splash]
+color = "#0B1C2C"
+dark_color = "#0B1C2C"
+
+[tool.flet.app]
+path = "src"
+
+[tool.flet.android]
+# Play Store prefers AAB with modern native packaging (default).
+# Limit ABIs for smaller bundles if needed:
+# target_arch = ["arm64-v8a"]
+
+[tool.flet.android.permission]
+"android.permission.INTERNET" = true
+"android.permission.CAMERA" = true
+# Do NOT declare READ_MEDIA_* / WRITE_EXTERNAL_STORAGE — FilePicker uses SAF.
+
+[tool.flet.android.feature]
+"android.hardware.camera" = false
+"android.hardware.camera.any" = false
+
+# Signing: set via env vars (do not commit passwords or .jks):
+#   FLET_ANDROID_SIGNING_KEY_STORE
+#   FLET_ANDROID_SIGNING_KEY_STORE_PASSWORD
+#   FLET_ANDROID_SIGNING_KEY_PASSWORD
+#   FLET_ANDROID_SIGNING_KEY_ALIAS=upload
+# Or uncomment after placing a local keystore path:
+# [tool.flet.android.signing]
+# key_alias = "upload"
+# key_store = "secrets/upload-keystore.jks"

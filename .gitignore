@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environments / secrets
+.env
+*.jks
+*.keystore
+secrets/
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Flet
+.flet/
+build/
+storage/
+# Large Play binaries (rebuild with scripts/build_play_aab.ps1)
+*.aab
+*.apk
+*.apks
+
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store

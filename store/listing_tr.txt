@@ -1,0 +1,39 @@
+=== Google Play — Türkiye mağaza listesi (yapıştırılabilir) ===
+
+Uygulama adı (30 karakter sınırı):
+Nakitçe
+
+Kısa açıklama (80 karakter):
+Esnafın günlük gelirini, giderini, veresiye ve stokunu tek yerde takip et.
+
+Tam açıklama:
+Nakitçe, günlük işlerini kolay anlaşılır şekilde takip etmek isteyen esnaf ve küçük işletmeler için dijital iş defteridir.
+
+• Gelen ve giden parayı kaydet, kasa durumunu pasta grafikle gör
+• Müşterilerin açık veresiye bakiyelerini ve tahsilatlarını takip et
+• Ürün, fiyat, stok ve az stok uyarılarını yönet
+• Barkod numarasını elle girerek kayıtlı ürünü bul
+• Metin, dikte, fotoğraf veya PDF ile kayıt oluştur; metinli PDF'lerde tutar önerisi al
+• POS kesintisini ve beklenen ödeme tarihini hesapla
+• İşçilik ve malzeme tutarıyla teklif hazırla
+• Raporlarını PDF veya CSV olarak dışa aktar
+• İsteğe bağlı kendi Supabase projenle cihaz ve bulut kopyalarını yönet
+• GİB e-Arşiv portalını aç; fatura işlemleri GİB sayfasında yapılır
+
+Temel sürüm ücretsizdir (aylık hareket, müşteri, ürün ve hatırlatma sınırlarıyla). Premium; limitsiz kullanım, uzun dönem pasta grafik, POS/teklif araçları, ek belge saklama ve bulut eşitleme sunar. Abonelik fiyatları Google Play üzerinden yönetilir; önerilen başlangıç fiyatları Play Console'da kesinleştirilmelidir.
+
+Notlar:
+• Nakitçe resmî muhasebe veya GİB e-Fatura hizmeti değildir.
+• Bu sürümde GİB ile doğrudan API entegrasyonu yoktur; portal yönlendirmesi yapılır.
+• Barkod için kamera tarayıcısı henüz yoktur; numara elle girilir.
+• Kullanıcının kendi Supabase bulut ücreti Nakitçe Premium'dan ayrıdır.
+
+Kategori önerisi: İş / Üretkenlik
+İçerik derecelendirmesi: Herkes (iş uygulaması; çocuklara yönelik değil)
+İletişim e-postası: teknolojimiras@gmail.com
+Gizlilik politikası: PRIVACY_POLICY_TR.md metnini HTTPS URL'de yayımlayıp buraya yapıştırın.
+
+Grafikler:
+• Uygulama simgesi: store/assets/icon_512.png (512×512)
+• Özellik grafiği: store/assets/play_feature_graphic.png (1024×500)
+• Telefon ekran görüntüleri: gerçek Android cihazdan en az 2 adet (zorunlu)
