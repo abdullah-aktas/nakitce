@@ -7,9 +7,9 @@ authors = [
     { name = "Miras Teknoloji", email = "teknolojimiras@gmail.com" }
 ]
 dependencies = [
-    "flet",
-    "httpx2",
-    "flet-camera",
+    "flet==0.82.2",
+    "flet-camera==0.82.2",
+    "httpx",
     "pypdf",
 ]
 

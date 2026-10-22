@@ -3,7 +3,7 @@
 import json
 import logging
 
-import httpx2 as httpx
+import httpx
 
 from membership import as_cached_status, premium_access, stamp_cache
 from membership_config import MEMBERSHIP_SUPABASE_ANON_KEY, MEMBERSHIP_SUPABASE_URL
