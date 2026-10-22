@@ -22,6 +22,11 @@ chcp 65001 | Out-Null
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUTF8 = "1"
 
+# Keep Pub/Gradle caches on D: — C: is often full; also avoids C:/D: Kotlin cache bugs.
+if (-not $env:PUB_CACHE) { $env:PUB_CACHE = "D:\pub-cache" }
+if (-not $env:GRADLE_USER_HOME) { $env:GRADLE_USER_HOME = "D:\gradle-home" }
+New-Item -ItemType Directory -Force -Path $env:PUB_CACHE, $env:GRADLE_USER_HOME | Out-Null
+
 # Short junctions avoid NDK/Flutter failures when the Windows username has spaces.
 if (Test-Path "C:\AndroidSdk") {
     $env:ANDROID_HOME = "C:\AndroidSdk"
@@ -52,7 +57,7 @@ if ($env:ANDROID_HOME -match "\s") {
 
 Write-Host "==> Building Android App Bundle (AAB)..."
 try {
-    flet build aab --module-name main
+    flet build aab --module-name main --yes
 } finally {
     if ($originalProfile) {
         $env:USERPROFILE = $originalProfile

@@ -7,17 +7,17 @@ authors = [
     { name = "Miras Teknoloji", email = "teknolojimiras@gmail.com" }
 ]
 dependencies = [
-    "flet==0.82.2",
-    "flet-camera==0.82.2",
+    "flet==1.0.5",
+    "flet-camera==1.0.5",
     "httpx",
     "pypdf",
 ]
 
 [dependency-groups]
 dev = [
-    "flet-cli",
-    "flet-desktop",
-    "flet-web"
+    "flet-cli==1.0.5",
+    "flet-desktop==1.0.5",
+    "flet-web==1.0.5",
 ]
 
 [tool.flet.metadata]
@@ -44,6 +44,11 @@ path = "src"
 # Play Store prefers AAB with modern native packaging (default).
 # Limit ABIs for smaller bundles if needed:
 # target_arch = ["arm64-v8a"]
+
+# Windows: Pub cache on C: + project on D: breaks Kotlin incremental caches.
+[tool.flet.android.gradle_properties]
+"kotlin.incremental" = "false"
+"org.gradle.jvmargs" = "-Xmx4G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError"
 
 [tool.flet.android.permission]
 "android.permission.INTERNET" = true
