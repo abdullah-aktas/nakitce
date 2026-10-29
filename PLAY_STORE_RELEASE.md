@@ -23,7 +23,8 @@ Bu dosya Play Store hazırlığını tek yerde toplar. Yapıştırılabilir meti
 python scripts\export_store_assets.py
 ```
 
-- Simge: `store/assets/icon_512.png` (512×512)
+- Simge: `store/assets/icon_512.png` (512×512, opak kare; kırmızı kalp + altın ₺)
+- Uygulama ikonu: `src/assets/icon.png` (1024×1024); yalnızca ikonları yenilemek için `python scripts\generate_icon.py`
 - Özellik grafiği: `store/assets/play_feature_graphic.png` (1024×500)
 - Ekran görüntüleri: gerçek Android cihazdan (zorunlu; bu depoda yok)
 
@@ -67,8 +68,7 @@ Güncel Flet paketleme: https://flet.dev/docs/publish/android
 
 ## 4. Üyelik mimarisi (hatırlatma)
 
-1. Kullanıcı Supabase → işletme sync (`supabase_schema.sql`)
-2. Miras üyelik Supabase → hesap/deneme/abonelik (`membership_schema.sql` + Edge Function)
+1. Tek Miras Supabase → Auth + `memberships` + `nakitce_snapshots` (`supabase/migrations` + Edge Function `membership`)
 3. Deneme sunucu saatiyle başlar; cihaz sayacı yoktur
 4. Play token sunucuda doğrulanır; `service_role` uygulama içinde olmaz
 5. SharedPreferences yalnızca sınırlı UI önbelleğidir
@@ -86,3 +86,4 @@ Güncel Flet paketleme: https://flet.dev/docs/publish/android
 - GİB yalnızca resmi portal yönlendirmesidir; kamera barkod okuyucu yoktur.
 - Pasta grafik SVG ile çizilir (`flet-charts` AAB derlemesinde Flet 0.82 ile uyumsuzdu; kaldırıldı).
 - Windows’ta kullanıcı/SDK yolunda **boşluk** varsa Gradle/NDK derlemesi sık düşer. `C:\AndroidSdk` junction + mümkünse Flutter’ı boşluksuz yola alın; alternatif: [Flet Studio](https://flet.dev/docs/publish/android) bulut AAB.
+- Proje yolunda Türkçe karakter varsa Gradle ve Dart AOT derleyicisi hata verebilir. Bu durumda kaynakları ASCII karakterli bir derleme dizinine kopyalayıp orada derleyin; yalnızca Gradle yol kontrolünü kapatmak yeterli değildir.

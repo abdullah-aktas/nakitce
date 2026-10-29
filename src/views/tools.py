@@ -17,9 +17,37 @@ def build(records, actions, sync_state, workspace=None):
             card(
                 ft.Row(
                     controls=[
-                        ft.Container(width=40, height=40, alignment=ft.Alignment.CENTER, border_radius=13, bgcolor="#FFF5E2", content=ft.Text("₺", color="#A66A08", weight=ft.FontWeight.BOLD)),
-                        ft.Column(expand=True, spacing=3, controls=[ft.Text(item["bank"], color=INK, weight=ft.FontWeight.W_600), ft.Text(f"{item['date']} · %{item['rate']} kesinti · {item['days']} gün", color=MUTED, size=12), ft.Text(f"Brüt {money(item['gross'])} → net {money(item['net'])}", color=INK, size=12)]),
-                        ft.Button(content="Geldi" if not item["paid"] else "Geri al", on_click=lambda e, p=item: actions["toggle_pos"](p), bgcolor="#E8F7F2" if not item["paid"] else "#F2F5F4", color=TEAL if not item["paid"] else INK),
+                        ft.Container(
+                            width=40,
+                            height=40,
+                            alignment=ft.Alignment.CENTER,
+                            border_radius=13,
+                            bgcolor="#FFF5E2",
+                            content=ft.Text("₺", color="#A66A08", weight=ft.FontWeight.BOLD),
+                        ),
+                        ft.Column(
+                            expand=True,
+                            spacing=3,
+                            controls=[
+                                ft.Text(item["bank"], color=INK, weight=ft.FontWeight.W_600),
+                                ft.Text(
+                                    f"{item['date']} · %{item['rate']} kesinti · {item['days']} gün",
+                                    color=MUTED,
+                                    size=12,
+                                ),
+                                ft.Text(
+                                    f"Brüt {money(item['gross'])} → net {money(item['net'])}",
+                                    color=INK,
+                                    size=12,
+                                ),
+                            ],
+                        ),
+                        ft.Button(
+                            content="Hesaba geçti" if not item["paid"] else "Geri al",
+                            on_click=lambda e, p=item: actions["toggle_pos"](p),
+                            bgcolor="#E8F7F2" if not item["paid"] else "#F2F5F4",
+                            color=TEAL if not item["paid"] else INK,
+                        ),
                     ]
                 )
             )
@@ -33,9 +61,30 @@ def build(records, actions, sync_state, workspace=None):
                 ft.Column(
                     spacing=8,
                     controls=[
-                        ft.Row(controls=[ft.Column(expand=True, spacing=3, controls=[ft.Text(quote["title"], color=INK, weight=ft.FontWeight.W_600), ft.Text(f"{quote['customer']} · {quote['date']}", color=MUTED, size=12)]), ft.Text(money(total), color=TEAL, weight=ft.FontWeight.BOLD)]),
-                        ft.Text(f"Malzeme {money(quote['materials'])} · İşçilik {money(quote['labor'])}", color=MUTED, size=12),
-                        ft.Button(content="Teklif PDF'i hazırla", on_click=lambda e, q=quote: actions["quote_pdf"](q), bgcolor="#F2F5F4", color=INK),
+                        ft.Row(
+                            controls=[
+                                ft.Column(
+                                    expand=True,
+                                    spacing=3,
+                                    controls=[
+                                        ft.Text(quote["title"], color=INK, weight=ft.FontWeight.W_600),
+                                        ft.Text(f"{quote['customer']} · {quote['date']}", color=MUTED, size=12),
+                                    ],
+                                ),
+                                ft.Text(money(total), color=TEAL, weight=ft.FontWeight.BOLD),
+                            ]
+                        ),
+                        ft.Text(
+                            f"Malzeme {money(quote['materials'])} · İşçilik {money(quote['labor'])}",
+                            color=MUTED,
+                            size=12,
+                        ),
+                        ft.Button(
+                            content="Teklif PDF'i",
+                            on_click=lambda e, q=quote: actions["quote_pdf"](q),
+                            bgcolor="#F2F5F4",
+                            color=INK,
+                        ),
                     ],
                 )
             )
@@ -47,71 +96,128 @@ def build(records, actions, sync_state, workspace=None):
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         spacing=14,
         controls=[
-            heading("İş araçları", "İşletme profili, raporlar ve günlük araçlar."),
-            section_label("İşletme bilgileri"),
+            heading("İş araçları", "Ücretsiz kasa defteri + Premium güç araçları."),
+            section_label("İşletme ve üyelik"),
             card(
                 ft.Column(
                     spacing=8,
                     controls=[
                         ft.Text(profile_label, color=INK, weight=ft.FontWeight.W_600),
                         ft.Text(
-                            " · ".join(value for value in [profile.get("legal_form", ""), profile.get("sector", "")] if value)
-                            or "Rapor başlığı ve işine uygun hatırlatmalar için profilini tamamla.",
+                            " · ".join(
+                                value for value in [profile.get("legal_form", ""), profile.get("sector", "")] if value
+                            )
+                            or "Profilini tamamla — kısayollar işine göre şekillenir.",
                             color=MUTED,
                             size=12,
                         ),
-                        ft.Text(f"Üyelik: {membership_label}", color=TEAL if plan in {"trial", "premium"} else MUTED, size=12),
+                        ft.Text(
+                            f"Üyelik: {membership_label}",
+                            color=TEAL if plan in {"trial", "premium"} else MUTED,
+                            size=12,
+                        ),
+                        ft.Text(
+                            "Serbest bölge: Aldım/Verdim, veresiye, WhatsApp ekstre, fiş OCR ve stok ücretsiz. "
+                            "Premium: POS takibi, teklif, bulut, 12 aylık grafik, banka CSV.",
+                            color=MUTED,
+                            size=11,
+                        ),
                         ft.Row(
                             wrap=True,
                             controls=[
-                                action_button("İşletme profilini düzenle", actions["edit_profile"], primary=True),
+                                action_button("Profili düzenle", actions["edit_profile"], primary=True),
                                 action_button("Üyelik / Premium", actions["membership"]),
                             ],
                         ),
                     ],
                 )
             ),
-            section_label("POS'tan gelecek"),
-            action_button("+ POS ödemesi ekle", actions["add_pos"], primary=True),
-            *(pos_rows or [card(ft.Text("Bekleyen POS ödemesi yok.", color=MUTED))]),
+            section_label("Kart / POS tahsilat takibi"),
+            card(
+                ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Text("Telefonunu POS yapma iddiası yok", color=INK, weight=ft.FontWeight.W_700),
+                        ft.Text(
+                            "Temassız SoftPOS için banka lisanslı cihaz gerekir. Burada karttan kesilen "
+                            "satışın ne zaman hesaba geçeceğini ve kesintiyi takip edersin — çalışır, abartısız.",
+                            color=INK,
+                            size=12,
+                        ),
+                        action_button("+ Kart satışı kaydet", actions["add_pos"], primary=True),
+                    ],
+                ),
+                bgcolor="#FFF9ED",
+            ),
+            *(pos_rows or [card(ft.Text("Bekleyen POS yok.", color=MUTED))]),
+            section_label("Banka ekstresi (CSV)"),
+            card(
+                ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Text("Hesap hareketlerini içe aktar", color=INK, weight=ft.FontWeight.W_700),
+                        ft.Text(
+                            "Bankanın indirdiği CSV'yi seç. Tarih, açıklama, tutar / alacak-borç sütunları okunur. "
+                            "Açık bankacılık bağlantısı yoktur — dosya cihazda işlenir.",
+                            color=MUTED,
+                            size=12,
+                        ),
+                        action_button("CSV içe aktar", actions["import_bank"], primary=True),
+                    ],
+                ),
+                bgcolor="#F0F6FF",
+            ),
             section_label("Hızlı teklifler"),
             action_button("+ Teklif oluştur", actions["add_quote"]),
-            *(quote_rows or [card(ft.Text("Henüz teklif hazırlanmamış.", color=MUTED))]),
+            *(quote_rows or [card(ft.Text("Henüz teklif yok.", color=MUTED))]),
             section_label("Mali müşavire gönder"),
             card(
                 ft.Column(
                     spacing=10,
                     controls=[
-                        ft.Text("Ay sonu raporunu dışa aktar", color=INK, weight=ft.FontWeight.W_600),
-                        ft.Text("Excel'de açılabilen CSV veya yazdırmaya uygun PDF raporu oluştur.", color=MUTED, size=12),
-                        ft.Row(wrap=True, spacing=8, controls=[action_button("Excel / CSV", actions["export_csv"], primary=True), action_button("PDF raporu", actions["export_pdf"])]),
-                    ]
-                )
-            ),
-            section_label("Bulut eşitlemesi"),
-            card(
-                ft.Column(
-                    spacing=10,
-                    controls=[
-                        ft.Text(sync_state.get("message", "Supabase bağlantısı ayarlanmadı."), color=INK, size=12),
-                        ft.Text("Veriler cihazda çalışmaya devam eder. Eşitleme için kendi Supabase projenin URL ve public anon key bilgilerini gir; hesap parolan saklanmaz.", color=MUTED, size=12),
+                        ft.Text("Ay sonu raporu", color=INK, weight=ft.FontWeight.W_600),
                         ft.Row(
                             wrap=True,
                             spacing=8,
                             controls=[
-                                action_button("Supabase hesabını bağla", actions["sync_setup"], primary=True),
+                                action_button("Excel / CSV", actions["export_csv"], primary=True),
+                                action_button("PDF raporu", actions["export_pdf"]),
+                            ],
+                        ),
+                    ],
+                )
+            ),
+            section_label("Nakitçe bulutu"),
+            card(
+                ft.Column(
+                    spacing=10,
+                    controls=[
+                        ft.Text(sync_state.get("message", "Bulut için giriş yap."), color=INK, size=12),
+                        ft.Text(
+                            "Veritabanı Miras Teknoloji’nin Nakitçe projesindedir. "
+                            "Kendi Supabase hesabı açmana gerek yok. "
+                            "Nakitçe hesabınla giriş yap → Premium ile eşitle. "
+                            "Kayıtlar hesabına özeldir (RLS).",
+                            color=INK,
+                            size=12,
+                        ),
+                        ft.Row(
+                            wrap=True,
+                            spacing=8,
+                            controls=[
+                                action_button("Nakitçe hesabı", actions["sync_setup"], primary=True),
                                 action_button("Şimdi eşitle", actions["sync_now"]),
                             ],
                         ),
                         *(
                             [
-                                ft.Text("İki cihazda da değişiklik var. Veri kaybını önlemek için eşitleme durduruldu; hangi kopyanın kullanılacağını seç.", color="#A66A08", size=12),
+                                ft.Text("Çakışma var — hangi kopyanın kalacağını seç.", color="#A66A08", size=12),
                                 ft.Row(
                                     wrap=True,
                                     spacing=8,
                                     controls=[
-                                        action_button("Bu cihazı buluta yükle", actions["sync_upload"], primary=True),
-                                        action_button("Buluttakini bu cihaza al", actions["sync_download"]),
+                                        action_button("Bu cihazı yükle", actions["sync_upload"], primary=True),
+                                        action_button("Buluttan al", actions["sync_download"]),
                                     ],
                                 ),
                             ]
@@ -122,27 +228,45 @@ def build(records, actions, sync_state, workspace=None):
                 ),
                 bgcolor="#F0F6FF",
             ),
-            section_label("GİB e-Arşiv faturası"),
+            section_label("GİB e-Arşiv"),
             card(
                 ft.Column(
                     spacing=10,
                     controls=[
-                        ft.Text("Faturanı resmi GİB portalında oluştur", color=INK, weight=ft.FontWeight.W_600),
-                        ft.Text("Portal girişini ve varsa SMS onayını doğrudan GİB sayfasında yap. Nakitçe kullanıcı adı, parola veya onay kodu istemez ve bunları kaydetmez.", color=MUTED, size=12),
+                        ft.Text("Resmi portal + hazırlık panosu", color=INK, weight=ft.FontWeight.W_700),
+                        ft.Text(
+                            "Nakitçe fatura kesmez ve GİB şifresi istemez. Profil bilgilerini panoya kopyala, "
+                            "portalı aç, faturayı GİB'de tamamla.",
+                            color=INK,
+                            size=12,
+                        ),
                         ft.Column(
                             spacing=5,
                             controls=[
-                                ft.Text("1 · GİB portalına güvenli şekilde giriş yap.", color=INK, size=12),
-                                ft.Text("2 · Müşteri ve satış bilgilerini girip faturayı oluştur.", color=INK, size=12),
-                                ft.Text("3 · Belgeyi GİB'den indir; müşterine WhatsApp veya e-posta ile gönder.", color=INK, size=12),
+                                ft.Text("1 · Hazırlık metnini kopyala", color=INK, size=12),
+                                ft.Text("2 · GİB e-Arşiv'e güvenli giriş yap", color=INK, size=12),
+                                ft.Text("3 · Bilgileri yapıştırıp faturayı oluştur", color=INK, size=12),
                             ],
                         ),
-                        action_button("GİB e-Arşiv portalını aç ↗", actions["open_gib"], primary=True),
-                        ft.Text("Belge türü, tutar sınırları ve yükümlülükler için GİB'in güncel yönlendirmesini esas al.", color="#8A641C", size=11),
+                        ft.Row(
+                            wrap=True,
+                            spacing=8,
+                            controls=[
+                                action_button("Hazırlığı kopyala", actions["gib_draft"], primary=True),
+                                action_button("GİB portalını aç ↗", actions["open_gib"]),
+                            ],
+                        ),
+                        ft.Text("Yükümlülük ve tutar sınırları için GİB'in güncel metnini esas al.", color=INK, size=11),
                     ],
                 ),
                 bgcolor="#FFF9ED",
             ),
-            card(ft.Text("İnternet yokken kayıtlar bu cihazda tutulur. Bulut eşitlemesi isteğe bağlıdır; bağlantı gelince son kayıtlar eşitlenir.", color=MUTED, size=12)),
+            card(
+                ft.Text(
+                    "İnternet yokken kayıtlar bu cihazda kalır. SoftPOS / kart okuma vaadi yoktur.",
+                    color=MUTED,
+                    size=12,
+                )
+            ),
         ],
     )

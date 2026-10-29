@@ -4,29 +4,30 @@ Uygulama adı (30 karakter sınırı):
 Nakitçe
 
 Kısa açıklama (80 karakter):
-Esnafın günlük gelirini, giderini, veresiye ve stokunu tek yerde takip et.
+Aldım/Verdim, veresiye, WhatsApp ekstre — esnafın cebindeki kasa defteri.
 
 Tam açıklama:
-Nakitçe, günlük işlerini kolay anlaşılır şekilde takip etmek isteyen esnaf ve küçük işletmeler için dijital iş defteridir.
+Nakitçe, muhasebe jargonu olmadan paranı yönetmen için dijital kasa defteridir.
 
-• Gelen ve giden parayı kaydet, kasa durumunu pasta grafikle gör
-• Müşterilerin açık veresiye bakiyelerini ve tahsilatlarını takip et
-• Ürün, fiyat, stok ve az stok uyarılarını yönet
-• Barkod numarasını elle girerek kayıtlı ürünü bul
-• Metin, dikte, fotoğraf veya PDF ile kayıt oluştur; metinli PDF'lerde tutar önerisi al
-• POS kesintisini ve beklenen ödeme tarihini hesapla
-• İşçilik ve malzeme tutarıyla teklif hazırla
-• Raporlarını PDF veya CSV olarak dışa aktar
-• İsteğe bağlı kendi Supabase projenle cihaz ve bulut kopyalarını yönet
-• GİB e-Arşiv portalını aç; fatura işlemleri GİB sayfasında yapılır
+• Aldım / Verdim ile defter gibi kayıt
+• Sesle komut: “Ahmet'e 450 TL veresiye yaz”
+• WhatsApp ile tek dokunuşta nazik PDF hesap ekstresi
+• Kamerayla fiş/fatura okuma (OCR) ve metinli PDF önerisi
+• Kritik günler: KDV, BA-BS, müşteri vadesi hatırlatmaları
+• Stok, hızlı satış, pasta grafik
+• Kart/POS tahsilatının hesaba geçişini takip et (SoftPOS değildir)
+• Nakitçe bulutu (giriş + Premium; kendi Supabase açmana gerek yok)
+• Banka CSV içe aktar (Premium)
+• GİB e-Arşiv hazırlık panosu + resmi portal
 
-Temel sürüm ücretsizdir (aylık hareket, müşteri, ürün ve hatırlatma sınırlarıyla). Premium; limitsiz kullanım, uzun dönem pasta grafik, POS/teklif araçları, ek belge saklama ve bulut eşitleme sunar. Abonelik fiyatları Google Play üzerinden yönetilir; önerilen başlangıç fiyatları Play Console'da kesinleştirilmelidir.
+Serbest bölge ücretsizdir: kasa, veresiye, WhatsApp ekstre, OCR, stok. Premium; POS takibi, teklif, banka CSV, bulut ve 12 aylık grafik sunar. Play Billing bağlı değilse satın alma düğmesi gösterilmez.
 
 Notlar:
-• Nakitçe resmî muhasebe veya GİB e-Fatura hizmeti değildir.
-• Bu sürümde GİB ile doğrudan API entegrasyonu yoktur; portal yönlendirmesi yapılır.
-• Barkod için kamera tarayıcısı henüz yoktur; numara elle girilir.
-• Kullanıcının kendi Supabase bulut ücreti Nakitçe Premium'dan ayrıdır.
+• Nakitçe resmî muhasebe, SoftPOS veya GİB e-Fatura API'si değildir.
+• GİB işlemleri resmi portalda tamamlanır.
+• Barkod: kamerayla tarama (EAN/Code128/QR) veya elle numara girişi.
+• Fotoğraf OCR internetli ücretsiz OCR kotası kullanır; ses cihaz klavyesi mikrofonuyladır.
+• Bulut verisi Miras Teknoloji Nakitçe sunucusundadır; kullanıcı ayrı Supabase projesi açmaz.
 
 Kategori önerisi: İş / Üretkenlik
 İçerik derecelendirmesi: Herkes (iş uygulaması; çocuklara yönelik değil)

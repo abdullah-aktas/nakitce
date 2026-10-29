@@ -1,7 +1,7 @@
 [project]
 name = "nakitce"
 version = "1.0.0"
-description = "Esnafın satışını, veresiye hesabını, stokunu ve günlük nakit akışını tek yerden yönettiği Türkçe mobil iş defteri."
+description = "Esnafın cebindeki kasa defteri: Aldım/Verdim, veresiye, WhatsApp ekstre, fiş OCR ve nakit takibi."
 requires-python = ">=3.12"
 authors = [
     { name = "Miras Teknoloji", email = "teknolojimiras@gmail.com" }
@@ -11,6 +11,9 @@ dependencies = [
     "flet-camera==1.0.5",
     "httpx",
     "pypdf",
+    "fpdf2",
+    "pillow",
+    "pyzbar",
 ]
 
 [dependency-groups]

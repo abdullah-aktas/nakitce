@@ -8,7 +8,7 @@ Uygulamanın **fiili davranışına** göre doldurun. Üyelik Supabase veya kull
 |-----------|----------------|------------------|------|-------------|
 | Uygulama etkinliği (işlem kayıtları) | Evet (cihazda) | Hayır (varsayılan) | Uygulama işlevselliği | Hayır — kullanıcı girer |
 | Kişisel bilgiler (e-posta, işletme profili) | İsteğe bağlı üyelik/profil | Üyelik için Miras Supabase’e | Hesap / üyelik | Hayır |
-| Finansal bilgiler (tutarlar, bakiyeler) | Evet (cihazda) | Yalnızca kullanıcı kendi Supabase sync’ini açarsa kendi projesine | Uygulama işlevselliği | Hayır |
+| Finansal bilgiler (tutarlar, bakiyeler) | Evet (cihazda) | Nakitçe hesabı + Premium bulut eşitlemesinde Miras Nakitçe sunucusuna (kullanıcıya özel RLS) | Uygulama işlevselliği | Hayır |
 | Fotoğraflar / belgeler | İsteğe bağlı ekler | Hayır (cihazda kalır; sync’e dahil değil) | Uygulama işlevselliği | Hayır |
 | Cihaz kimlikleri | Hayır (bilinen SDK yok) | Hayır | — | — |
 | Konum | Hayır | Hayır | — | — |

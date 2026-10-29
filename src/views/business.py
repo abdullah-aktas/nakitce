@@ -127,7 +127,7 @@ def show_profile(page, profile, submit):
     )
 
 
-def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh, on_purchase=None):
+def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh, on_purchase=None, billing_available=False, on_redeem=None, on_delete_account=None, on_legal=None, on_web_pay=None, price_text=""):
     mode = membership.get("mode", "simple")
     plan_text = membership.get("membership_label", "Sunucu üyeliği doğrulanmadı")
     premium_active = membership.get("premium_access", False)
@@ -146,57 +146,194 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
         page.pop_dialog()
 
     controls = [
-        ft.Text("Premium erişimi yalnızca Nakitçe üyelik sunucusunun doğruladığı hesap veya Google Play aboneliğiyle açılır. Cihaz tarihi veya yerel sayaç hak vermez.", color=MUTED, size=12),
+        ft.Container(
+            padding=14,
+            border_radius=16,
+            bgcolor="#E8F7F2",
+            content=ft.Column(
+                spacing=6,
+                tight=True,
+                controls=[
+                    ft.Text("Serbest bölge · ücretsiz", color=TEAL, weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        "Aldım/Verdim, veresiye, WhatsApp PDF, sesle kayıt, fiş OCR, stok, kritik günler.",
+                        color=INK,
+                        size=12,
+                    ),
+                ],
+            ),
+        ),
+        ft.Container(
+            padding=14,
+            border_radius=16,
+            bgcolor="#FFF9ED",
+            content=ft.Column(
+                spacing=6,
+                tight=True,
+                controls=[
+                    ft.Text("Premium", color=INK, weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        "POS takibi, teklif, banka CSV, Nakitçe bulutu (Miras), 12 aylık grafik, ileri ekran.",
+                        color=INK,
+                        size=12,
+                    ),
+                    ft.Text(f"{price_text} (güncel fiyat satın alma ekranında görünür)." if price_text else "", color=INK, size=11),
+                ],
+            ),
+        ),
         ft.Text(plan_text, color=TEAL if premium_active else MUTED, weight=ft.FontWeight.W_600),
         message,
-        ft.Text("Temel: ayda 30 hareket, 10 müşteri, 20 ürün ve 3 aktif hatırlatma. Premium: limitsiz kullanım, 12 aylık pasta grafik, POS ve teklif araçları, ekli belge saklama ve bulut eşitleme.", color=MUTED, size=12),
-        ft.Text("Önerilen fiyat: 99,99 TL/ay veya 999,99 TL/yıl. Bunlar taslak fiyatlardır; gerçek fiyat Play kataloğundan okunmalıdır. Kullanıcının kendi Supabase bulut ücreti bu abonelikten ayrıdır.", color=INK, size=12),
     ]
     if not configured:
-        controls.append(ft.Text("Üyelik servisi henüz bağlanmadı. Geliştirici Supabase URL ve public anon key ayarlanana kadar Premium kapalı kalır.", color="#8A641C", size=12))
+        controls.append(
+            ft.Text(
+                "Üyelik servisi bağlı değil. Temel özellikler çalışır; Premium sunucu + Play sonrası açılır.",
+                color="#8A641C",
+                size=12,
+            )
+        )
     elif signed_in:
         controls.append(ft.Text(f"Hesap: {membership.get('email', '')}", color=INK, size=12))
-        controls.append(ft.Row(wrap=True, controls=[
-            ft.Button(content="Durumu sunucudan yenile", on_click=lambda e: on_refresh()),
-            ft.TextButton(content="Oturumu kapat", on_click=lambda e: on_auth_action("sign_out", "", "")),
-        ]))
+        code_field = ft.TextField(label="Aktivasyon kodu (XXXX-XXXX-XXXX)", capitalization=ft.TextCapitalization.CHARACTERS)
+
+        async def redeem(e):
+            if on_redeem:
+                await on_redeem(code_field.value or "")
+                page.pop_dialog()
+
+        controls.append(
+            ft.Row(
+                wrap=True,
+                controls=[
+                    code_field,
+                    ft.Button(content="Kodu kullan", on_click=redeem, bgcolor=TEAL, color="white"),
+                ],
+            )
+        )
+        if on_web_pay:
+            controls.append(ft.Button(content="Web'den Premium satın al", on_click=lambda e: on_web_pay()))
+        controls.append(
+            ft.Row(
+                wrap=True,
+                controls=[
+                    ft.Button(content="Durumu yenile", on_click=lambda e: on_refresh()),
+                    ft.TextButton(content="Oturumu kapat", on_click=lambda e: on_auth_action("sign_out", "", "")),
+                    ft.TextButton(content="Hesabımı sil", on_click=lambda e: on_delete_account() if on_delete_account else None),
+                ],
+            )
+        )
     else:
-        controls.extend([email_field, password_field, ft.Row(wrap=True, controls=[
-            ft.Button(content="Hesap oluştur", on_click=lambda e: auth_action("sign_up"), bgcolor=TEAL, color="white"),
-            ft.Button(content="Giriş yap", on_click=lambda e: auth_action("sign_in")),
-        ])])
-    controls.extend([
-        ft.Text("Deneme cihazda başlatılmaz. E-posta doğrulandıktan sonra sunucu kendi saatiyle bir kez 30 günlük deneme yazar. İstersen Play Console'da abonelik deneme teklifi de tanımlayabilirsin.", color=MUTED, size=12),
-        ft.Button(
-            content="Google Play'den Premium satın al",
-            on_click=lambda e: on_purchase() if on_purchase else None,
-            disabled=on_purchase is None,
-            tooltip="Satın alma belirteci Edge Function üzerinden doğrulanır. Ürün kimlikleri kesinleşene kadar köprü stub'tır.",
-        ),
-        ft.Text("Ekran modu", color=INK, weight=ft.FontWeight.W_600),
-        ft.Row(wrap=True, controls=[
-            ft.Button(content="Basit", disabled=mode == "simple", on_click=lambda e: on_mode_change("simple")),
-            ft.Button(content="İleri seviye", disabled=not premium_active or mode == "advanced", on_click=lambda e: on_mode_change("advanced"), tooltip="Sunucuda doğrulanmış Premium gerekir"),
-        ]),
-        ft.Text("Nakitçe günlük işletme kayıt defteridir; resmî defter veya GİB e-Fatura hizmeti değildir. GİB işlemleri resmî portalda tamamlanır.", color=MUTED, size=12),
-    ])
+        controls.extend(
+            [
+                email_field,
+                password_field,
+                ft.Row(
+                    wrap=True,
+                    controls=[
+                        ft.Button(content="Hesap oluştur", on_click=lambda e: auth_action("sign_up"), bgcolor=TEAL, color="white"),
+                        ft.Button(content="Giriş yap", on_click=lambda e: auth_action("sign_in")),
+                    ],
+                ),
+            ]
+        )
+    if billing_available and on_purchase:
+        controls.append(
+            ft.Button(content="Google Play'den Premium al", on_click=lambda e: on_purchase(), bgcolor=TEAL, color="white")
+        )
+    if on_legal:
+        controls.append(ft.TextButton(content="Gizlilik, KVKK ve yasal bilgiler", on_click=lambda e: on_legal()))
+    controls.extend(
+        [
+            ft.Text("Ekran modu", color=INK, weight=ft.FontWeight.W_600),
+            ft.Row(
+                wrap=True,
+                controls=[
+                    ft.Button(content="Basit", disabled=mode == "simple", on_click=lambda e: on_mode_change("simple")),
+                    ft.Button(
+                        content="İleri seviye",
+                        disabled=not premium_active or mode == "advanced",
+                        on_click=lambda e: on_mode_change("advanced"),
+                    ),
+                ],
+            ),
+            ft.Text("Nakitçe SoftPOS veya resmî GİB faturası değildir.", color=MUTED, size=12),
+        ]
+    )
     page.show_dialog(
         ft.AlertDialog(
             modal=True,
-            title=ft.Text("Üyelik ve ekran modu", color=INK, weight=ft.FontWeight.BOLD),
+            title=ft.Text("Üyelik · Serbest bölge", color=INK, weight=ft.FontWeight.BOLD),
             content=ft.Column(tight=True, width=360, scroll=ft.ScrollMode.AUTO, controls=controls),
             actions=[ft.TextButton(content="Kapat", on_click=lambda e: page.pop_dialog())],
         )
     )
 
 
+LEGAL_TEXT = (
+    "Nakitçe bir işletme kasa/veresiye takip aracıdır. Resmî defter, e-Fatura/e-Arşiv, e-Defter, "
+    "yazar kasa veya ÖKC yerine geçmez; vergi beyanı ve belge düzeni için mali müşavirine danış.\n\n"
+    "Vergi Usul Kanunu'na göre ticari defter ve belgelerin 5 yıl saklanması gerekir. Asıl belgelerini "
+    "(fatura, fiş) saklamaya devam et; Nakitçe'deki kayıtlar yardımcı dijital bir takip içindir.\n\n"
+    "KVKK: Kayıtların (müşteri adı, telefon, tutarlar) bu cihazda saklanır. Üyelik e-postan ve bulut eşitlemesini "
+    "açarsan kayıtların Nakitçe sunucusuna (Supabase) şifreli bağlantıyla yüklenir. Fiş fotoğrafı okuma "
+    "(OCR) özelliğini kullanırsan görsel, metne çevrilmesi için internetteki bir OCR servisine gönderilir; "
+    "fotoğraf eklemen bu aktarımı kabul ettiğin anlamına gelir, istemezsen bilgiyi elle gir. Müşterilerinin kişisel verilerini işlerken kendi aydınlatma "
+    "yükümlülüğünden sen sorumlusun.\n\n"
+    "Verilerini istediğin zaman Araçlar'dan dışa aktarabilir, Üyelik ekranından hesabını ve bulut verilerini "
+    "kalıcı olarak silebilirsin."
+)
+
+
+def show_legal(page, privacy_url="", on_open_url=None):
+    actions = [ft.TextButton(content="Kapat", on_click=lambda e: page.pop_dialog())]
+    if privacy_url and on_open_url:
+        actions.insert(0, ft.TextButton(content="Gizlilik politikası", on_click=lambda e: on_open_url(privacy_url)))
+    page.show_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Gizlilik ve yasal bilgiler", color=INK, weight=ft.FontWeight.BOLD),
+            content=ft.Column(tight=True, width=360, scroll=ft.ScrollMode.AUTO, controls=[ft.Text(LEGAL_TEXT, color=MUTED, size=12)]),
+            actions=actions,
+        )
+    )
+
+
+def show_consent(page, on_accept):
+    async def accept(e):
+        page.pop_dialog()
+        await on_accept()
+
+    page.show_dialog(
+        ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Başlamadan önce", color=INK, weight=ft.FontWeight.BOLD),
+            content=ft.Column(tight=True, width=360, scroll=ft.ScrollMode.AUTO, controls=[ft.Text(LEGAL_TEXT, color=MUTED, size=12)]),
+            actions=[ft.Button(content="Okudum, kabul ediyorum", bgcolor=TEAL, color="white", on_click=accept)],
+        )
+    )
+
+
 def show_reminder(page, submit, sector=""):
+    from datetime import date, timedelta
+
     suggested_title = SECTOR_REMINDER_HINTS.get(sector, "İşletme kontrolü")
+    presets = [
+        ("Yarın KDV günü olabilir", 1, "Tebligatını kontrol et — resmî tarih GİB'e göredir."),
+        ("Komşunun / müşterinin borç vadesi", 0, "Açık hesabı olan müşteriyi ara veya WhatsApp'la."),
+        ("BA-BS / ay sonu evrak", max(0, (date.today().replace(day=28) - date.today()).days), "Ba-Bs yükümlülüğün varsa mali müşavirinle doğrula."),
+        (suggested_title, 7, "Sektörüne özel kontrol."),
+    ]
     fields = {
-        "title": ft.TextField(label="Hatırlatma başlığı", value=suggested_title),
-        "date": ft.TextField(label="Tarih (YYYY-AA-GG)", hint_text="2026-12-31"),
-        "note": ft.TextField(label="Not", multiline=True, min_lines=2, max_lines=3),
+        "title": ft.TextField(label="Hatırlatma başlığı", value=presets[0][0]),
+        "date": ft.TextField(label="Tarih (YYYY-AA-GG)", value=(date.today() + timedelta(days=1)).isoformat()),
+        "note": ft.TextField(label="Not", value=presets[0][2], multiline=True, min_lines=2, max_lines=3),
     }
+
+    def apply_preset(title, days, note):
+        fields["title"].value = title
+        fields["date"].value = (date.today() + timedelta(days=days)).isoformat()
+        fields["note"].value = note
+        page.update()
 
     async def save():
         values = {key: field.value or "" for key, field in fields.items()}
@@ -208,8 +345,27 @@ def show_reminder(page, submit, sector=""):
     page.show_dialog(
         ft.AlertDialog(
             modal=True,
-            title=ft.Text("Hatırlatma ekle", color=INK, weight=ft.FontWeight.BOLD),
-            content=ft.Column(tight=True, controls=list(fields.values()), width=340, spacing=10),
+            title=ft.Text("Kritik gün hatırlatması", color=INK, weight=ft.FontWeight.BOLD),
+            content=ft.Column(
+                tight=True,
+                width=340,
+                spacing=10,
+                controls=[
+                    ft.Text("Hazır esnaf dili:", color=MUTED, size=12),
+                    ft.Row(
+                        wrap=True,
+                        spacing=6,
+                        controls=[
+                            ft.TextButton(
+                                content=title[:28],
+                                on_click=lambda e, t=title, d=days, n=note: apply_preset(t, d, n),
+                            )
+                            for title, days, note in presets
+                        ],
+                    ),
+                    *fields.values(),
+                ],
+            ),
             actions=[
                 ft.TextButton(content="Vazgeç", on_click=lambda e: page.pop_dialog()),
                 ft.Button(content="Kaydet", bgcolor=TEAL, color="white", on_click=save),

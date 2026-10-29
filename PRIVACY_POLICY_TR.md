@@ -12,15 +12,16 @@ Uygulamaya girdiğiniz gelir-gider hareketleri, müşteri adları ve telefonlar�
 
 Premium deneme veya abonelik için Nakitçe hesabı oluşturursanız e-posta ve parola Miras Teknoloji’nin yönettiği üyelik Supabase projesine gönderilir. Deneme başlangıç/bitiş zamanları sunucu saatiyle kaydedilir. Uygulama, üyelik durumunun son doğrulanmış kopyasını sınırlı süre cihaz önbelleğinde tutabilir; bu önbellek Premium hakkını kendi başına oluşturmaz. Google Play satın alma belirteçleri sunucuda doğrulanır.
 
-## İsteğe bağlı Supabase eşitlemesi
+## Nakitçe bulutu (isteğe bağlı Premium eşitleme)
 
-Bulut eşitlemesini siz yapılandırıp hesabınıza bağlarsanız, kayıt defteriniz yapılandırdığınız (sizin) Supabase projesindeki Nakitçe tablosuna gönderilir. Bu proje üyelik sunucusundan ayrıdır; Supabase plan/kullanım ücretini siz ödersiniz. Eşitleme sırasında yazdığınız parola Nakitçe tarafından kaydedilmez. Oturum belirteçleri uygulama çalışırken bellekte tutulur. Proje adresi, public anon/publishable key ve hesap e-postası cihaz tercihlerinde saklanabilir.
+Bulut eşitlemesi Miras Teknoloji’nin Nakitçe Supabase projesinde tutulur. Son kullanıcı kendi veritabanı projesi açmaz veya proje anahtarı girmez. Nakitçe hesabınıza giriş yaptıktan sonra (Premium ile) kayıtlarınız yalnızca sizin kullanıcı kimliğinize bağlı tablolara yazılır (RLS). Oturum belirteçleri uygulama çalışırken bellekte ve cihaz tercihlerinde tutulabilir.
 
 ## Ses, kamera ve dosya girişi
 
-Konuşarak yaz alanı, varsa cihaz klavyesinin kendi dikte özelliğini kullanır; Nakitçe bu sürümde ses kaydı almaz veya ses dosyası göndermez. Kamera yalnızca kullanıcı fotoğraf çekmeyi seçtiğinde açılır. Seçilen fotoğraf ve dosyalar uygulama depolamasında yerel ek olarak tutulur; eşitlemeye dahil edilmez. Metin içeren PDF'lerden metin çıkarımı cihazda yapılır. Fotoğraf OCR'ı yapılmaz. İlgili düğme resmi GİB portalını açar; Nakitçe GİB parolası veya SMS kodu almaz.
-- **WhatsApp:** Borç hatırlatma düğmesi, telefon numarası ve mesaj taslağıyla WhatsApp bağlantısı açar.
-- **Dosya dışa aktarma:** PDF/CSV dosyaları cihazın dosya kaydetme arayüzüyle dışa aktarılır.
+Konuşarak yaz alanı, varsa cihaz klavyesinin kendi dikte özelliğini kullanır; Nakitçe ses kaydı almaz veya ses dosyası göndermez. Kamera; fiş fotoğrafı veya barkod tarama için kullanıcı açtığında kullanılır. Barkod çözümü cihaz üzerinde (pyzbar) yapılır; görüntü sunucuya gönderilmez. Seçilen fotoğraf ve dosyalar uygulama depolamasında yerel ek olarak tutulur; eşitlemeye dahil edilmez. Metin içeren PDF'lerden metin çıkarımı cihazda yapılır. Fotoğraf OCR için görüntü, tutar/metin çıkarımı amacıyla üçüncü taraf OCR.space hizmetine gönderilebilir (internet gerekir); sonuçlar cihazda işlenir. İlgili düğme resmi GİB portalını açar; Nakitçe GİB parolası veya SMS kodu almaz.
+- **WhatsApp / paylaşım:** Hesap ekstresi PDF'i ve nazik hatırlatma metni cihaz paylaşım sayfası veya WhatsApp bağlantısıyla gönderilir.
+- **Dosya dışa aktarma:** PDF/CSV dosyaları cihazın dosya kaydetme veya paylaşım arayüzüyle dışa aktarılır.
+- **Banka CSV:** Seçtiğiniz dosya cihazda okunur; banka hesabına uzaktan bağlanılmaz.
 
 Nakitçe'nin mevcut sürümünde reklam veya uygulama içi analiz SDK'sı bulunmamaktadır.
 

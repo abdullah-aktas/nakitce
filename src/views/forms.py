@@ -12,9 +12,9 @@ FORM_FIELDS = {
     "product": [("name", "Ürün veya hizmet adı", ""), ("barcode", "Barkod (isteğe bağlı)", ""), ("qty", "Mevcut stok", "0"), ("min_qty", "Az stok uyarısı", "0"), ("price", "Satış fiyatı (TL)", "")],
     "sale": [("qty", "Satılan adet", "1")],
     "lookup": [("barcode", "Barkod numarası", "")],
+    "opening": [("amount", "Şu an kasadaki nakit (TL)", "0")],
     "pos": [("bank", "Banka / POS adı", "Banka POS"), ("gross", "Brüt satış (TL)", ""), ("rate", "Kesinti oranı (%)", "2.49"), ("days", "Ödeme kaç gün sonra?", "3")],
     "quote": [("customer", "Müşteri adı", ""), ("title", "Yapılacak iş", ""), ("materials", "Malzeme tutarı (TL)", "0"), ("labor", "İşçilik tutarı (TL)", "0")],
-    "sync": [("project_url", "Supabase Project URL", "https://your-project.supabase.co"), ("anon_key", "Supabase anon / publishable key", ""), ("email", "Hesap e-postası", ""), ("password", "Hesap parolası", "")],
 }
 
 FORM_TITLES = {
@@ -26,9 +26,9 @@ FORM_TITLES = {
     "product": "Ürün / hizmet ekle",
     "sale": "Hızlı satış",
     "lookup": "Barkodla ürün bul",
+    "opening": "Kasadaki parayı ayarla",
     "pos": "POS ödemesi ekle",
     "quote": "Hızlı teklif oluştur",
-    "sync": "Supabase bulut eşitlemesi",
 }
 
 
@@ -36,8 +36,6 @@ def show_form(page, kind, submit, subject=None):
     controls = {}
     field_controls = []
     for key, label, default in FORM_FIELDS[kind]:
-        if kind == "sync" and subject:
-            default = subject.get(key, default)
         field = ft.TextField(
             label=label,
             value=default,
@@ -57,7 +55,7 @@ def show_form(page, kind, submit, subject=None):
     dialog = ft.AlertDialog(
         modal=True,
         title=ft.Text(FORM_TITLES[kind], color=INK, weight=ft.FontWeight.BOLD),
-        content=ft.Column(controls=([ft.Text("Kendi Supabase projenin SQL Editor bölümünde supabase_schema.sql dosyasını çalıştırıp Auth hesabı oluştur. Project URL, public anon/publishable key ve hesap bilgilerini gir. Kayıtlar senin projenle eşitlenir; Supabase plan/kullanım ücretini doğrudan Supabase'e sen ödersin. Bu ücret Nakitçe Premium'dan ayrıdır; Nakitçe parolanı saklamaz.", color=INK, size=12)] if kind == "sync" else []) + ([ft.Text(f"Müşteri: {subject['name']}", color=INK)] if kind == "collect" and subject else []) + ([ft.Text(f"Ürün: {subject['name']} · {subject['price']:.2f} TL / adet", color=INK)] if kind == "sale" and subject else []) + field_controls, tight=True, spacing=10, width=340, scroll=ft.ScrollMode.AUTO),
+        content=ft.Column(controls=([ft.Text(f"Müşteri: {subject['name']}", color=INK)] if kind == "collect" and subject else []) + ([ft.Text(f"Ürün: {subject['name']} · {subject['price']:.2f} TL / adet", color=INK)] if kind == "sale" and subject else []) + field_controls, tight=True, spacing=10, width=340, scroll=ft.ScrollMode.AUTO),
         actions=[
             ft.TextButton(content="Vazgeç", on_click=lambda e: page.pop_dialog()),
             ft.Button(content="Kaydet", on_click=save, bgcolor=TEAL, color="white"),

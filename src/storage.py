@@ -1,6 +1,6 @@
 import json
 
-from data import starter_data
+from data import is_legacy_demo, starter_data
 
 _STORAGE_KEY = "nakitce_records_v1"
 _SYNC_CONFIG_KEY = "nakitce_sync_config_v1"
@@ -33,7 +33,7 @@ async def _load_json(preferences, key, default):
 
 async def load_records(preferences):
     records = await _load_json(preferences, _STORAGE_KEY, None)
-    if records is None:
+    if records is None or is_legacy_demo(records):
         records = starter_data()
         await save_records(preferences, records)
     return records

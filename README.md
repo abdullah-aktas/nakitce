@@ -1,19 +1,33 @@
 # Nakitçe
 
-Esnafın cep defteri — satış, veresiye, stok ve günlük nakit akışını tek yerden yöneten Türkçe mobil iş uygulaması.
+Esnafın cebindeki kasa defteri — **Aldım / Verdim**, veresiye, stok ve nakit akışı. Muhasebe jargonu yok.
 
 **Miras Teknoloji** · paket: `com.mirasteknoloji.nakitce` · sürüm: `1.0.0`
 
 ## Özellikler
 
-- Gelen / giden para ve kasa bakiyesi
-- Veresiye (müşteri bakiyesi, tahsilat, WhatsApp hatırlatma taslağı)
-- Stok / hizmet, barkod ile elle arama, hızlı satış
-- Pasta grafik ile gelir–gider dağılımı
-- POS kesintisi ve teklif (Premium)
-- PDF / CSV işletme raporu
-- İsteğe bağlı kendi Supabase projenle bulut eşitleme
-- GİB e-Arşiv portalına yönlendirme (uygulama içinde fatura kesmez)
+- **Aldım / Verdim** sadelik + sesle komut (“Ahmet'e 450 TL veresiye yaz”)
+- Veresiye defteri, vade ve **WhatsApp + profesyonel PDF hesap ekstresi** (mesaj + tablo)
+- Kamerayla / PDF ile fiş okuma (OCR; internetli fotoğraf, metinli PDF yerelde)
+- Kritik gün hatırlatıcıları (KDV, BA-BS, müşteri vadesi — bilgilendirme amaçlı)
+- Pasta grafik, stok, hızlı satış
+- **Serbest bölge (ücretsiz):** kasa, veresiye, WhatsApp ekstre, OCR, stok
+- **Premium:** POS tahsilat takibi, teklif, banka CSV, bulut, 12 aylık grafik
+- Nakitçe bulutu (Miras Supabase) — kullanıcı kendi proje açmaz; hesapla giriş + Premium eşitleme
+- GİB e-Arşiv: hazırlık panoya + resmi portal (uygulama içinde fatura kesmez)
+- SoftPOS / temassız kart okuma **yok** (lisanslı banka ürünü gerekir); kart satışlarının hesaba geçişini takip edersin
+
+## Supabase (yalnızca geliştirici — Miras projesi)
+
+Ayrıntı: [`supabase/README.md`](supabase/README.md)
+
+1. Supabase’de proje aç  
+2. SQL: `supabase/migrations/20261024000000_init.sql`  
+   (eski expand tabloları varsa `…000001_drop_legacy_expand.sql`)  
+3. `supabase functions deploy membership`  
+4. `src/membership_config.py` → URL + anon key  
+
+Kullanıcı yalnızca Nakitçe hesabıyla girer. Veri: `memberships` + `nakitce_snapshots` (RLS).
 
 ## Gereksinimler
 
@@ -46,30 +60,47 @@ flet run
 ## Proje yapısı
 
 ```
-src/                 Uygulama (main, views, üyelik, sync)
+src/                 Uygulama (main, views, üyelik, sync, OCR, ses komutu)
 src/assets/          Logo, ikon, Play özellik grafiği
 store/               Mağaza metni, veri güvenliği taslağı, checklist
 scripts/             AAB derleme ve mağaza görselleri
-supabase_schema.sql  Kullanıcının kendi Supabase sync tablosu
-membership_schema.sql + supabase/functions/membership/
-                     Miras Teknoloji üyelik sunucusu (taslak)
+supabase/            Tek Miras proje: migrations + membership Edge Function
 ```
 
 ## Üyelik (Premium)
 
-İki ayrı Supabase kullanımı vardır:
+Tek Miras Supabase projesi: üyelik + işletme verisi. Kullanıcı kendi proje açmaz.
 
-1. **Kullanıcının projesi** — işletme kayıtlarının eşitlemesi (`supabase_schema.sql`). Ücreti kullanıcı öder.
-2. **Miras üyelik projesi** — hesap, deneme ve abonelik yetkisi. Yazma yalnızca Edge Function ile; uygulama `service_role` taşımaz.
-
-Premium erişimi sunucu doğrulamasına bağlıdır. `src/membership_config.py` içine geliştirici proje URL ve public anon key yazılmadan Premium kapalı kalır. Play Billing köprüsü (`src/billing_bridge.py`) henüz stub’tır.
+Premium erişimi sunucu doğrulamasına bağlıdır. `src/membership_config.py` doldurulmadan Premium ve bulut kapalı kalır. Play Billing köprüsü (`src/billing_bridge.py`) henüz stub’tır — çalışmayan satın alma düğmesi gösterilmez.
 
 ## Android paketleme
+
+### Uygulama ikonu
+
+Mavi–teal geçiş üzerinde kırmızı kalp ve altın ₺ ikonunu yeniden üretmek için:
+
+```powershell
+python scripts\generate_icon.py
+```
+
+Pillow proje bağımlılıklarına dahildir. Betik, depodaki DejaVu Sans fontunu
+kullanır; sistem fontu veya ek indirme gerektirmez. Çıktılar:
+
+- `src/assets/icon.png`: 1024×1024, yuvarlatılmış şeffaf köşeler; uygulama ve Flet paketleme.
+- `store/assets/icon_512.png`: 512×512, opak kare; köşe ve gölge işlemini Google Play uygular.
+
+Yollar çalışma dizinine değil, proje köküne göre belirlenir.
+`python scripts\export_store_assets.py` de aynı ikon üreticisini kullanır.
+SVG ikon ve logo da aynı mavi–teal, kırmızı kalp ve altın ₺ tasarımını kullanır.
+`python scripts\export_store_assets.py`, özellik grafiğinin iki PNG kopyasını da
+günceller; büyük marka işareti ve telefon içindeki küçük ikon yeni uygulama
+ikonundan üretilir. SVG sürümleri vektöreldir; ₺ işareti font gerektirmez.
+
+### Derleme
 
 Play Store için AAB önerilir; yan yükleme için APK:
 
 ```powershell
-# Boşluklu Windows kullanıcı adında junction gerekebilir (bkz. store/console_checklist.md)
 .\scripts\build_play_aab.ps1          # AAB → build\aab\
 flet build apk --module-name main     # APK → build\apk\
 ```

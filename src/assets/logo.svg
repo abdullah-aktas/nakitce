@@ -1,15 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-label="Nakit�e">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 100" role="img" aria-label="Nakit&#231;e">
   <defs>
-    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#36D6B2"/>
-      <stop offset="1" stop-color="#12947D"/>
+    <linearGradient id="mark" x2="0" y2="1">
+      <stop stop-color="#0D47A1"/>
+      <stop offset="1" stop-color="#00B4B4"/>
     </linearGradient>
+    <linearGradient id="heartFill" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FF6265"/>
+      <stop offset="1" stop-color="#AF0F26"/>
+    </linearGradient>
+    <radialGradient id="shine" cx=".3" cy=".27" r=".3">
+      <stop stop-color="#FFFFFF" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <path id="heartShape" d="M512 328 C399 133 164 205 164 399 C164 573 369 717 512 850 C655 717 860 573 860 399 C860 205 625 133 512 328Z"/>
+    <path id="lira" d="M450 380 H492 V608 C548 600 576 558 580 516 H622 C620 604 562 656 450 656Z M394 510 L532 414 L554 447 L416 543Z M394 568 L532 472 L554 505 L416 601Z"/>
   </defs>
-  <rect x="4" y="14" width="68" height="68" rx="20" fill="url(#mark)"/>
-  <circle cx="38" cy="48" r="18" fill="none" stroke="#F6FCF9" stroke-width="5"/>
-  <path d="M38 36v24M30 42h12c4 0 7 2.2 7 5.5S46 53 42 53H30" fill="none" stroke="#0B1C2C" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <g fill="#0B1C2C" font-family="Segoe UI, Arial, sans-serif">
-    <text x="90" y="58" font-size="42" font-weight="700" letter-spacing="-0.5">Nakit�e</text>
+  <g transform="translate(2 10) scale(.078125)">
+    <rect width="1024" height="1024" rx="225" fill="url(#mark)"/>
+    <use href="#heartShape" transform="translate(0 20)" fill="#06121C" opacity=".22"/>
+    <use href="#heartShape" fill="url(#heartFill)"/>
+    <use href="#heartShape" fill="url(#shine)"/>
+    <use href="#lira" transform="translate(8 12)" fill="#701E12" opacity=".4"/>
+    <use href="#lira" transform="translate(5 6)" fill="#B87708"/>
+    <use href="#lira" fill="#FFC107"/>
   </g>
-  <text x="92" y="82" fill="#5F7A84" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600">Esnaf1n cep defteri</text>
+  <!-- Wordmark: entities keep Turkish glyphs intact across encodings -->
+  <text
+    x="100" y="56"
+    fill="#0B1C2C"
+    font-family="Segoe UI, Arial, Helvetica, sans-serif"
+    font-size="40"
+    font-weight="700"
+    letter-spacing="-0.6"
+  >Nakit&#231;e</text>
+  <text
+    x="102" y="80"
+    fill="#5B7382"
+    font-family="Segoe UI, Arial, Helvetica, sans-serif"
+    font-size="13"
+    font-weight="600"
+  >Ticaretin kalbi · esnaf&#305;n cep defteri</text>
 </svg>

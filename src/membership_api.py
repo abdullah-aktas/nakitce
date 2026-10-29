@@ -207,3 +207,19 @@ class MembershipClient:
         self.message = result.get("message", "Google Play üyeliği doğrulandı.")
         await self._persist_status_cache()
         return result
+
+    async def redeem_code(self, code):
+        result = await self._function_call({"action": "redeem_code", "code": code})
+        result = dict(result)
+        result['from_cache'] = False
+        self.status = result
+        self.message = result.get('message', 'Kod uygulandı.')
+        await self._persist_status_cache()
+        return self.message
+
+    async def record_consent(self, kind, accepted=True, version='1'):
+        await self._function_call({"action": "record_consent", "kind": kind, "accepted": accepted, "version": version})
+
+    async def delete_account(self):
+        await self._function_call({"action": "delete_account", "confirm": "SIL"})
+        await self.sign_out()

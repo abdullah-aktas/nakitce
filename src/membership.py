@@ -6,11 +6,12 @@ That cache must never invent or extend a trial from the device clock.
 
 from datetime import datetime, timezone
 
+# Serbest bölge: temel kasa / veresiye / stok cömert; Premium gelişmiş araçlar için.
 BASIC_LIMITS = {
-    "monthly_transactions": 30,
-    "customers": 10,
-    "products": 20,
-    "reminders": 3,
+    "monthly_transactions": 500,
+    "customers": 200,
+    "products": 300,
+    "reminders": 40,
 }
 
 # Offline UI grace: show last verified Premium for at most this many hours

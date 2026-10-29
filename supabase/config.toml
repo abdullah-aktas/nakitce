@@ -1,0 +1,17 @@
+# Nakitçe · Miras Teknoloji Supabase CLI
+# https://supabase.com/docs/guides/cli
+
+project_id = "nakitce"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[auth]
+enabled = true
+enable_signup = true
+
+[functions.membership]
+verify_jwt = true
