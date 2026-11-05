@@ -46,6 +46,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install flet==1.0.5 flet-cli==1.0.5 flet-camera==1.0.5 httpx pypdf fpdf2 pillow pyzbar
 
+      # device_info_plus 12.4+ calls isiOSAppOnVision; pin until Flet bumps transitive deps.
+      - name: Pin device_info_plus for Xcode archive
+        run: |
+          mkdir -p build
+          cat > build/pubspec_override.yaml <<'EOF'
+          dependency_overrides:
+            device_info_plus: 11.3.0
+          EOF
+          echo "Override prepared (applied after flet generates Flutter project if present)."
+
       - name: Inject Apple Team ID when present
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

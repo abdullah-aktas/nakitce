@@ -10,7 +10,16 @@ jobs:
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [apk, aab]
     steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk /opt/ghc /usr/local/share/boost || true
+          df -h
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -34,32 +43,19 @@ jobs:
       - name: Install Flet + deps
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" || pip install flet==1.0.5 flet-cli==1.0.5 httpx pypdf fpdf2 pillow
-          pip install flet-camera==1.0.5 pyzbar
+          pip install flet==1.0.5 flet-cli==1.0.5 flet-camera==1.0.5 httpx pypdf fpdf2 pillow pyzbar
 
       - name: Export store assets
         run: python scripts/export_store_assets.py
 
-      - name: Build APK
-        run: flet build apk --module-name main --yes
+      - name: Build ${{ matrix.target }}
+        run: flet build ${{ matrix.target }} --module-name main --yes
 
-      - name: Build AAB
-        run: flet build aab --module-name main --yes
-
-      - name: Upload APK
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nakitce-apk
+          name: nakitce-${{ matrix.target }}
           path: |
-            build/apk/*.apk
-            build/**/*.apk
-          if-no-files-found: warn
-
-      - name: Upload AAB
-        uses: actions/upload-artifact@v4
-        with:
-          name: nakitce-aab
-          path: |
-            build/aab/*.aab
-            build/**/*.aab
+            build/${{ matrix.target }}/*.${{ matrix.target }}
+            build/**/*.${{ matrix.target }}
           if-no-files-found: warn
