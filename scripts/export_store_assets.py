@@ -79,12 +79,21 @@ def export_feature_graphic():
     return out
 
 
+def export_screenshots():
+    from generate_play_screenshots import export_screenshots as _export
+
+    return _export()
+
+
 def main():
     STORE.mkdir(parents=True, exist_ok=True)
     icon = export_icon()
     feature = export_feature_graphic()
+    shots = export_screenshots()
     print(f"Wrote {icon}")
     print(f"Wrote {feature}")
+    for path in shots:
+        print(f"Wrote {path}")
 
 
 if __name__ == "__main__":

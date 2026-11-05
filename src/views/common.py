@@ -2,6 +2,18 @@ import flet as ft
 
 
 INK = "#0E2433"
+
+
+def camera_supported(page) -> bool:
+    """flet-camera yalnızca Android / iOS / Web'de; masaüstünde oluşturmak diyalogu kırar."""
+    if getattr(page, "web", False):
+        return True
+    platform = getattr(page, "platform", None)
+    return platform in {
+        ft.PagePlatform.ANDROID,
+        ft.PagePlatform.ANDROID_TV,
+        ft.PagePlatform.IOS,
+    }
 MUTED = "#5B7382"
 TEAL = "#0F9B82"
 TEAL_DEEP = "#0B7A67"

@@ -71,3 +71,14 @@ path = "src"
 # [tool.flet.android.signing]
 # key_alias = "upload"
 # key_store = "secrets/upload-keystore.jks"
+
+# iOS: derleme yalnızca macOS + Xcode ile (yerel veya GitHub Actions macos runner).
+# team_id: Apple Developer → Membership → Team ID (CI secret: APPLE_TEAM_ID)
+[tool.flet.ios]
+bundle_id = "com.mirasteknoloji.nakitce"
+export_method = "app-store"
+
+[tool.flet.ios.info]
+NSCameraUsageDescription = "Fiş ve barkod okumak için kamera kullanılır."
+NSPhotoLibraryUsageDescription = "Fiş görseli seçmek için fotoğraf kitaplığına erişilir."
+ITSAppUsesNonExemptEncryption = false

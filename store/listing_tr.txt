@@ -37,4 +37,11 @@ Gizlilik politikası: PRIVACY_POLICY_TR.md metnini HTTPS URL'de yayımlayıp bur
 Grafikler:
 • Uygulama simgesi: store/assets/icon_512.png (512×512)
 • Özellik grafiği: store/assets/play_feature_graphic.png (1024×500)
-• Telefon ekran görüntüleri: gerçek Android cihazdan en az 2 adet (zorunlu)
+• Telefon ekran görüntüleri (1080×1920): store/assets/screenshots/
+  - 01_ozet_aldim_verdim.png
+  - 02_para_hareketleri.png
+  - 03_veresiye_defteri.png
+  - 04_sesle_fisle_kayit.png
+  - 05_ilk_acilis.png
+  Üretmek için: python scripts\generate_play_screenshots.py
+  İdeal: gerçek Android cihazdan da 2+ ek görüntü ekle.

@@ -33,8 +33,11 @@ FORM_TITLES = {
 
 
 def show_form(page, kind, submit, subject=None):
+    from views.common import RED
+
     controls = {}
     field_controls = []
+    notice = ft.Text("", color=RED, size=12, visible=False)
     for key, label, default in FORM_FIELDS[kind]:
         field = ft.TextField(
             label=label,
@@ -48,14 +51,32 @@ def show_form(page, kind, submit, subject=None):
         field_controls.append(field)
 
     async def save():
+        notice.visible = False
+        notice.value = ""
         values = {key: control.value or "" for key, control in controls.items()}
-        if await submit(kind, values, subject):
+        result = await submit(kind, values, subject)
+        if result is True:
             page.pop_dialog()
+            return
+        notice.value = result if isinstance(result, str) else "Bilgileri kontrol edip tekrar dene."
+        notice.visible = True
+        page.update()
 
     dialog = ft.AlertDialog(
         modal=True,
         title=ft.Text(FORM_TITLES[kind], color=INK, weight=ft.FontWeight.BOLD),
-        content=ft.Column(controls=([ft.Text(f"Müşteri: {subject['name']}", color=INK)] if kind == "collect" and subject else []) + ([ft.Text(f"Ürün: {subject['name']} · {subject['price']:.2f} TL / adet", color=INK)] if kind == "sale" and subject else []) + field_controls, tight=True, spacing=10, width=340, scroll=ft.ScrollMode.AUTO),
+        content=ft.Column(
+            controls=(
+                ([ft.Text(f"Müşteri: {subject['name']}", color=INK)] if kind == "collect" and subject else [])
+                + ([ft.Text(f"Ürün: {subject['name']} · {subject['price']:.2f} TL / adet", color=INK)] if kind == "sale" and subject else [])
+                + field_controls
+                + [notice]
+            ),
+            tight=True,
+            spacing=10,
+            width=340,
+            scroll=ft.ScrollMode.AUTO,
+        ),
         actions=[
             ft.TextButton(content="Vazgeç", on_click=lambda e: page.pop_dialog()),
             ft.Button(content="Kaydet", on_click=save, bgcolor=TEAL, color="white"),

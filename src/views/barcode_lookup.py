@@ -5,46 +5,53 @@ from __future__ import annotations
 import asyncio
 
 import flet as ft
-from flet_camera import Camera, CameraLensDirection, ImageFormatGroup, ResolutionPreset
 
 from barcode_decode import decode_barcode_bytes
-from views.common import INK, MUTED, TEAL, WHITE
+from views.common import INK, MUTED, TEAL, WHITE, camera_supported
 
 
 def show(page, on_code, *, title="Barkod tara"):
     """on_code(barcode: str) async veya sync çağrılır."""
-    camera = Camera(width=360, height=260, visible=False)
+    use_camera = camera_supported(page)
+    camera = None
     camera_ready = {"value": False}
     streaming = {"value": False}
     found = {"value": False}
     frame_i = {"n": 0}
 
+    if use_camera:
+        from flet_camera import Camera, CameraLensDirection, ImageFormatGroup, ResolutionPreset
+
+        camera = Camera(width=360, height=260, visible=False)
+
     barcode_field = ft.TextField(
         label="Barkod numarası",
-        hint_text="Kamerayla oku veya elle yaz",
+        hint_text="Kamerayla oku veya elle yaz" if use_camera else "Barkod numarasını yaz",
         keyboard_type=ft.KeyboardType.NUMBER,
-        border_radius=16,
         filled=True,
         bgcolor=WHITE,
-        autofocus=False,
+        autofocus=not use_camera,
     )
     notice = ft.Text(
-        "Barkodu kadraja al. Otomatik okunmazsa “Fotoğrafla oku”ya bas veya numarayı yaz.",
+        "Barkodu kadraja al. Otomatik okunmazsa “Fotoğrafla oku”ya bas veya numarayı yaz."
+        if use_camera
+        else "Bu cihazda kamera yok. Barkod numarasını elle yazıp bul.",
         color=MUTED,
         size=12,
     )
 
     async def stop_stream():
-        if streaming["value"]:
-            try:
-                await camera.stop_image_stream()
-            except Exception:
-                pass
-            streaming["value"] = False
+        if camera is None or not streaming["value"]:
+            return
+        try:
+            await camera.stop_image_stream()
+        except Exception:
+            pass
+        streaming["value"] = False
 
     async def cleanup():
         await stop_stream()
-        if camera_ready["value"]:
+        if camera is not None and camera_ready["value"]:
             try:
                 await camera.pause_preview()
             except Exception:
@@ -78,9 +85,14 @@ def show(page, on_code, *, title="Barkod tara"):
         if code:
             await finish(code)
 
-    camera.on_stream_image = on_stream_image
+    if camera is not None:
+        camera.on_stream_image = on_stream_image
 
     async def open_camera():
+        if not use_camera or camera is None:
+            notice.value = "Bu cihazda kamera desteklenmiyor. Numarayı elle yaz."
+            page.update()
+            return
         camera.visible = True
         notice.value = "Kamera açılıyor…"
         page.update()
@@ -117,12 +129,12 @@ def show(page, on_code, *, title="Barkod tara"):
             camera.visible = False
             notice.value = (
                 f"Kamera açılamadı ({str(error)[:90]}). "
-                "Masaüstünde kamera sınırlı olabilir; Android’de dene veya numarayı yaz."
+                "Numarayı elle yazabilirsin."
             )
         page.update()
 
     async def capture_and_decode():
-        if found["value"]:
+        if found["value"] or camera is None:
             return
         if not camera_ready["value"]:
             await open_camera()
@@ -145,7 +157,7 @@ def show(page, on_code, *, title="Barkod tara"):
     async def submit_manual(e=None):
         code = (barcode_field.value or "").strip()
         if not code:
-            notice.value = "Barkod numarası yaz veya kamerayla oku."
+            notice.value = "Barkod numarası yaz" + (" veya kamerayla oku." if use_camera else ".")
             page.update()
             return
         await finish(code)
@@ -159,7 +171,32 @@ def show(page, on_code, *, title="Barkod tara"):
         bgcolor=TEAL,
         color="white",
         disabled=True,
+        visible=use_camera,
     )
+
+    row_controls = []
+    if use_camera:
+        row_controls.extend(
+            [
+                ft.Button(content="Kamerayı aç", on_click=open_camera, bgcolor="#EAF2FF", color=INK),
+                capture_btn,
+            ]
+        )
+
+    content_controls = [
+        ft.Text(
+            "Ürün barkodunu kameraya göster (EAN-13, Code128, QR…)."
+            if use_camera
+            else "Barkod numarasını yazıp stokta ara.",
+            color=MUTED,
+            size=12,
+        ),
+    ]
+    if row_controls:
+        content_controls.append(ft.Row(wrap=True, spacing=8, controls=row_controls))
+    if camera is not None:
+        content_controls.append(camera)
+    content_controls.extend([barcode_field, notice])
 
     dialog = ft.AlertDialog(
         modal=True,
@@ -170,20 +207,7 @@ def show(page, on_code, *, title="Barkod tara"):
             tight=True,
             scroll=ft.ScrollMode.AUTO,
             spacing=10,
-            controls=[
-                ft.Text("Ürün barkodunu kameraya göster (EAN-13, Code128, QR…).", color=MUTED, size=12),
-                ft.Row(
-                    wrap=True,
-                    spacing=8,
-                    controls=[
-                        ft.Button(content="Kamerayı aç", on_click=open_camera, bgcolor="#EAF2FF", color=INK),
-                        capture_btn,
-                    ],
-                ),
-                camera,
-                barcode_field,
-                notice,
-            ],
+            controls=content_controls,
         ),
         actions=[
             ft.TextButton(content="Vazgeç", on_click=lambda e: page.pop_dialog()),
@@ -193,4 +217,5 @@ def show(page, on_code, *, title="Barkod tara"):
         on_dismiss=on_dismiss,
     )
     page.show_dialog(dialog)
-    asyncio.create_task(open_camera())
+    if use_camera:
+        asyncio.create_task(open_camera())

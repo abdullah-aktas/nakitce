@@ -70,7 +70,20 @@ def build(records, actions):
                 ],
             ),
             section_label(f"Kayıtlı kalemler · {len(records['products'])}"),
-            *(rows or [card(ft.Text("Henüz ürün eklenmemiş.", color=MUTED))]),
+            *(
+                rows
+                or [
+                    card(
+                        ft.Column(
+                            spacing=8,
+                            controls=[
+                                ft.Text("Henüz ürün eklenmemiş.", color=MUTED, size=13),
+                                ft.Button(content="+ Ürün / hizmet ekle", on_click=actions["product_add"], bgcolor=TEAL, color="white"),
+                            ],
+                        )
+                    )
+                ]
+            ),
             card(
                 ft.Text(
                     "Barkod tarama: kamerayı aç, etiketi kadraja al (EAN-13, Code128, QR). "

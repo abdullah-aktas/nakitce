@@ -298,17 +298,41 @@ def show_legal(page, privacy_url="", on_open_url=None):
     )
 
 
-def show_consent(page, on_accept):
+CONSENT_SUMMARY = (
+    "Nakitçe cebindeki kasa defteridir; resmî defter veya e-Fatura yerine geçmez. "
+    "Kayıtların bu cihazda saklanır. Üyelik / bulut veya fiş fotoğrafı (OCR) kullanırsan "
+    "ilgili veriler sunucuya gider — ayrıntılar gizlilik metninde."
+)
+
+
+def show_consent(page, on_accept, privacy_url="", on_open_url=None, on_legal=None):
     async def accept(e):
         page.pop_dialog()
         await on_accept()
 
+    actions = [
+        ft.Button(content="Devam et", bgcolor=TEAL, color="white", on_click=accept),
+    ]
+    if on_legal:
+        actions.insert(0, ft.TextButton(content="Ayrıntılar", on_click=lambda e: on_legal()))
+    elif privacy_url and on_open_url:
+        actions.insert(0, ft.TextButton(content="Gizlilik", on_click=lambda e: on_open_url(privacy_url)))
+
     page.show_dialog(
         ft.AlertDialog(
             modal=True,
-            title=ft.Text("Başlamadan önce", color=INK, weight=ft.FontWeight.BOLD),
-            content=ft.Column(tight=True, width=360, scroll=ft.ScrollMode.AUTO, controls=[ft.Text(LEGAL_TEXT, color=MUTED, size=12)]),
-            actions=[ft.Button(content="Okudum, kabul ediyorum", bgcolor=TEAL, color="white", on_click=accept)],
+            title=ft.Text("Nakitçe'ye hoş geldin", color=INK, weight=ft.FontWeight.BOLD),
+            content=ft.Column(
+                tight=True,
+                width=360,
+                spacing=10,
+                controls=[
+                    ft.Text("Aldım / Verdim ile hemen kayda başlayabilirsin.", color=INK, size=13, weight=ft.FontWeight.W_600),
+                    ft.Text(CONSENT_SUMMARY, color=MUTED, size=12),
+                    ft.Text("İşletme profilini sonra Araçlar'dan tamamlayabilirsin.", color=MUTED, size=11),
+                ],
+            ),
+            actions=actions,
         )
     )
 

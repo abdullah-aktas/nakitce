@@ -261,6 +261,28 @@ def build(records, actions, sync_state, workspace=None):
                 ),
                 bgcolor="#FFF9ED",
             ),
+            *(
+                [
+                    section_label("Örnek veri"),
+                    card(
+                        ft.Column(
+                            spacing=8,
+                            controls=[
+                                ft.Text("Örnek işletme modu açık", color=INK, weight=ft.FontWeight.W_700),
+                                ft.Text(
+                                    "Bu kayıtlar tanıtım içindir. Temizleyince boş kasa defteri kalır.",
+                                    color=MUTED,
+                                    size=12,
+                                ),
+                                action_button("Örnek veriyi temizle", actions["clear_demo"], primary=True),
+                            ],
+                        ),
+                        bgcolor="#E8F7F2",
+                    ),
+                ]
+                if workspace.get("demo_mode") and "clear_demo" in actions
+                else []
+            ),
             card(
                 ft.Text(
                     "İnternet yokken kayıtlar bu cihazda kalır. SoftPOS / kart okuma vaadi yoktur.",

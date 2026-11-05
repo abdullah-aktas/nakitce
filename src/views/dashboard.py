@@ -272,26 +272,85 @@ def build(records, actions, workspace=None):
         )
     )
 
-    has_any_data = bool(records["transactions"] or records["customers"] or records["products"])
+    has_any_data = bool(
+        records["transactions"]
+        or records["customers"]
+        or records["products"]
+        or workspace.get("opening_set")
+    )
+    demo_banner = None
+    if workspace.get("demo_mode"):
+        demo_banner = card(
+            ft.Row(
+                controls=[
+                    ft.Column(
+                        expand=True,
+                        spacing=2,
+                        controls=[
+                            ft.Text("Örnek işletme açık", color=INK, weight=ft.FontWeight.W_700, size=13),
+                            ft.Text("Gerçek kayıt değil — Araçlar’dan temizleyebilirsin.", color=MUTED, size=11),
+                        ],
+                    ),
+                    ft.TextButton(content="Temizle", on_click=actions["clear_demo"]),
+                ],
+            ),
+            bgcolor="#E8F7F2",
+        )
     welcome = card(
         ft.Column(
             spacing=8,
             controls=[
-                ft.Text("Hoş geldin! 3 adımda başla", color=INK, weight=ft.FontWeight.BOLD, size=16),
-                ft.Text("1) Kasadaki parayı yaz   2) İlk Aldım / Verdim kaydını gir   3) Veresiye veren müşterini ekle. Kayıtların girdikçe burada özetlenir.", color=MUTED, size=12),
+                ft.Text("Hemen başla", color=INK, weight=ft.FontWeight.BOLD, size=16),
+                ft.Text(
+                    "Kasadaki parayı yaz, Aldım / Verdim kaydı gir veya veresiye yaz. "
+                    "İstersen örnek bakkal verisiyle önce gez.",
+                    color=MUTED,
+                    size=12,
+                ),
                 ft.Row(
                     wrap=True,
                     spacing=8,
                     controls=[
-                        ft.Button(content="Kasadaki parayı yaz", on_click=actions["opening"], bgcolor=TEAL, color="white"),
-                        ft.Button(content="Müşteri ekle", on_click=actions["add"]),
+                        ft.Button(content="Aldım", on_click=actions["income"], bgcolor=TEAL, color="white"),
+                        ft.Button(content="Veresiye yaz", on_click=actions["debt"], bgcolor="#FFF1D8", color=INK),
+                        ft.Button(content="Kasadaki parayı yaz", on_click=actions["opening"]),
+                        ft.Button(content="Örnekle dene", on_click=actions["load_demo"], bgcolor="#EAF2FF", color="#3565A8"),
                     ],
                 ),
             ],
         ),
         bgcolor="#FFF9ED",
     )
+    profile_nudge = None
+    if not (profile.get("business_name") or "").strip() and has_any_data and not workspace.get("demo_mode"):
+        profile_nudge = card(
+            ft.Column(
+                spacing=6,
+                controls=[
+                    ft.Text("İşletme adı (isteğe bağlı)", color=INK, weight=ft.FontWeight.W_600, size=13),
+                    ft.Text("Kısayollar iş koluna göre düzenlenir.", color=MUTED, size=11),
+                    ft.TextButton(content="Profili tamamla", on_click=actions["edit_profile"]),
+                ],
+            ),
+            bgcolor="#EAF2FF",
+        )
     show_follow_ups = bool(pending_pos or low_stock)
+    empty_recent = card(
+        ft.Column(
+            spacing=8,
+            controls=[
+                ft.Text("Henüz hareket yok.", color=MUTED, size=13),
+                ft.Row(
+                    wrap=True,
+                    spacing=8,
+                    controls=[
+                        ft.Button(content="Aldım", on_click=actions["income"], bgcolor=TEAL, color="white"),
+                        ft.Button(content="Verdim", on_click=actions["expense"], bgcolor=RED, color="white"),
+                    ],
+                ),
+            ],
+        )
+    )
 
     return ft.Column(
         expand=True,
@@ -300,7 +359,9 @@ def build(records, actions, workspace=None):
         spacing=16,
         controls=[
             hero,
+            *([demo_banner] if demo_banner else []),
             *([] if has_any_data else [welcome]),
+            *([profile_nudge] if profile_nudge else []),
             heading("Nakit özeti", "Muhasebe değil — paran nerede, kârın ne."),
             ft.ResponsiveRow(controls=metrics, spacing=12, run_spacing=12),
             *([chart_card] if chart_total > 0 else []),
@@ -313,7 +374,7 @@ def build(records, actions, workspace=None):
                 size=11,
             ),
             section_label("Son hareketler"),
-            *(recent_cards or [card(ft.Text("Henüz hareket yok.", color=MUTED))]),
+            *(recent_cards or [empty_recent]),
             ft.TextButton(content="Gizlilik, KVKK ve yasal bilgiler", on_click=actions["legal"]),
         ],
     )

@@ -139,6 +139,27 @@ def build(records, actions):
             hero,
             action_button("+ Müşteri ekle", actions["add"], primary=True),
             section_label(f"Müşterilerim · {len(records['customers'])}"),
-            *(rows or [card(ft.Text("Henüz müşteri yok. İlk veresiyeyi sesle veya butonla ekle.", color=MUTED))]),
+            *(
+                rows
+                or [
+                    card(
+                        ft.Column(
+                            spacing=8,
+                            controls=[
+                                ft.Text("Henüz müşteri yok.", color=MUTED, size=13),
+                                ft.Text("Veresiye yazınca müşteri otomatik oluşur; istersen önce kart ekleyebilirsin.", color=MUTED, size=12),
+                                ft.Row(
+                                    wrap=True,
+                                    spacing=8,
+                                    controls=[
+                                        ft.Button(content="Veresiye yaz", on_click=actions["debt"], bgcolor=TEAL, color="white"),
+                                        ft.Button(content="+ Müşteri ekle", on_click=actions["add"]),
+                                    ],
+                                ),
+                            ],
+                        )
+                    )
+                ]
+            ),
         ],
     )

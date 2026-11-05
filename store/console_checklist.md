@@ -12,6 +12,8 @@ Sürüm adı: `1.0.0` · build number: `1` (her yüklemede artır)
 - [x] Android izinleri: `pyproject.toml` (INTERNET + CAMERA)
 - [x] AAB derleme betiği: `scripts/build_play_aab.ps1`
 - [x] Raster grafikler: `store/assets/icon_512.png`, `store/assets/play_feature_graphic.png`
+- [x] Telefon ekran görüntüleri: `store/assets/screenshots/` (5 adet, 1080×1920)
+- [x] İlk açılış demosu: boş başlangıç + “Örnekle dene” (`src/demo_seed.py`)
 - [x] AAB üretildi: `build/aab/nakitce.aab` (~89 MB) — **şu an debug imzalı** olabilir
 
 ## B. Senin sıradaki adımların
@@ -31,7 +33,7 @@ Sürüm adı: `1.0.0` · build number: `1` (her yüklemede artır)
 3. **Gizlilik URL’si** — `PRIVACY_POLICY_TR.md` içeriğini HTTPS’te yayımla.
 4. **Play Console** — uygulama oluştur (ad: Nakitçe).
 5. **Dahili test** — imzalı `build\aab\nakitce.aab` yükle; paket ID’yi doğrula.
-6. **Mağaza listesi** — `store/listing_tr.txt` + `store/assets/*` + en az 2 gerçek cihaz ekran görüntüsü.
+6. **Mağaza listesi** — `store/listing_tr.txt` + `store/assets/*` + `store/assets/screenshots/*` (isteğe bağlı gerçek cihaz ekle).
 7. **Veri güvenliği** — `store/data_safety_tr.md`.
 8. **İçerik derecelendirmesi** — iş uygulaması / çocuklara yönelik değil.
 9. **Premium açılacaksa (şimdilik üretimde açma)**  

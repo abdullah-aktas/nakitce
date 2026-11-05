@@ -14,6 +14,8 @@ from membership import BASIC_LIMITS, current_plan, membership_summary, premium_a
 from membership_api import MembershipApiError, MembershipClient
 from membership_config import PAYMENT_URL, PRICE_TEXT, PRIVACY_URL
 from cloud_sync import CloudSync
+from data import starter_data
+from demo_seed import clear_demo_workspace, showcase_records, showcase_workspace
 from reminders_engine import critical_alerts, default_due_date, seed_tax_reminders, whatsapp_reminder_message
 from storage import load_evidence, load_records, load_workspace, save_evidence, save_records, save_workspace
 from views import barcode_lookup, business, customers, dashboard, intake, inventory, ledger, tools
@@ -82,16 +84,14 @@ async def main(page: ft.Page):
     share = ft.Share()
     clipboard = ft.Clipboard()
     billing = BillingBridge(page)
+    # Yerel veri önce — ağ/üyelik arka planda; açılışta ekran hemen kullanıma hazır.
     records = await load_records(preferences)
     evidence = await load_evidence(preferences)
     workspace = await load_workspace(preferences)
     membership_client = MembershipClient(preferences)
-    await membership_client.initialize()
     cloud_sync = CloudSync(preferences, records, workspace)
-    await cloud_sync.initialize()
-    if membership_client.signed_in:
-        cloud_sync.attach_membership(membership_client)
     active_tab = "home"
+    services_ready = {"value": False}
 
     content = ft.Container(expand=True, padding=18)
     status_text = ft.Text("Çevrimdışı kayıt açık · bu cihazda saklanır", size=11, color=MUTED)
@@ -313,8 +313,61 @@ async def main(page: ft.Page):
                     await membership_client.record_consent(kind)
                 except MembershipApiError:
                     pass
-        if not workspace.get("profile", {}).get("business_name"):
-            business.show_profile(page, workspace.get("profile", {}), save_profile)
+        set_status("Hazırsın — Aldım ile başla veya örnekle dene.")
+        show_snack("Kasa defteri açık · Aldım’a bas veya örnekle dene")
+        refresh()
+
+    async def load_showcase_demo():
+        """Boş kurulumda örnek işletme yükle — kullanıcı açıkça ister."""
+        if records["transactions"] or records["customers"] or records["products"]:
+            if not workspace.get("demo_mode"):
+                set_status("Önce mevcut kayıtların var. Örnek yalnızca boş başlangıçta veya örnek moddayken.")
+                show_snack("Kendi kayıtların duruyor · örnek yüklenmedi", color="#FFF1D8")
+                return
+        demo = showcase_records()
+        records.clear()
+        records.update(demo)
+        seeded = showcase_workspace()
+        workspace.clear()
+        workspace.update(seeded)
+        # Önceki onay varsa koru
+        if not workspace.get("consent_v1"):
+            workspace["consent_v1"] = date.today().isoformat()
+        cloud_sync.mark_local_change()
+        await save_records(preferences, records)
+        await save_workspace(preferences, workspace)
+        await cloud_sync.save_meta()
+        select_tab("home")
+        set_status("Örnek işletme yüklendi · dene, Araçlar’dan temizleyebilirsin.")
+        show_snack("Örnek veri hazır · Miraş Bakkal")
+
+    async def clear_showcase_demo():
+        if not workspace.get("demo_mode"):
+            set_status("Örnek mod açık değil.")
+            return
+
+        async def do():
+            fresh = starter_data()
+            records.clear()
+            records.update(fresh)
+            cleared = clear_demo_workspace(workspace)
+            workspace.clear()
+            workspace.update(cleared)
+            workspace["profile"] = {}
+            workspace["reminders"] = []
+            cloud_sync.mark_local_change()
+            await save_records(preferences, records)
+            await save_workspace(preferences, workspace)
+            await cloud_sync.save_meta()
+            select_tab("home")
+            set_status("Örnek veri silindi · boş kasa defteri.")
+            show_snack("Örnek temizlendi · sıfırdan başla")
+
+        confirm(
+            "Örnek veri silinsin mi?",
+            "Örnek müşteriler, hareketler ve stok silinir. Kendi gerçek kayıtların yoksa boş defter kalır.",
+            do,
+        )
 
     async def membership_action(action, email, password):
         try:
@@ -373,21 +426,31 @@ async def main(page: ft.Page):
 
     def render_nav():
         nav.content = ft.Row(
-            scroll=ft.ScrollMode.AUTO,
-            spacing=5,
+            spacing=4,
             controls=[
                 ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=14, vertical=10),
+                    expand=True,
+                    padding=ft.Padding.symmetric(vertical=8),
                     border_radius=14,
                     bgcolor=TEAL if key == active_tab else WHITE,
                     on_click=lambda e, selected=key: select_tab(selected),
                     tooltip=label,
-                    content=ft.Row(
+                    ink=True,
+                    content=ft.Column(
+                        spacing=2,
                         tight=True,
-                        spacing=7,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         controls=[
-                            ft.Icon(TAB_ICONS[key], size=17, color=WHITE if key == active_tab else MUTED),
-                            ft.Text(label, color=WHITE if key == active_tab else MUTED, weight=ft.FontWeight.W_600, size=13),
+                            ft.Icon(TAB_ICONS[key], size=20, color=WHITE if key == active_tab else MUTED),
+                            ft.Text(
+                                label,
+                                color=WHITE if key == active_tab else MUTED,
+                                weight=ft.FontWeight.W_600,
+                                size=11,
+                                text_align=ft.TextAlign.CENTER,
+                                max_lines=1,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                            ),
                         ],
                     ),
                 )
@@ -590,6 +653,8 @@ async def main(page: ft.Page):
                 if amount < 0:
                     raise ValueError("Kasa tutarı negatif olamaz.")
                 records["cash_balance"] = amount
+                workspace["opening_set"] = True
+                await save_workspace(preferences, workspace)
 
             elif kind == "bank_import":
                 rows = values.get("rows") or []
@@ -616,8 +681,10 @@ async def main(page: ft.Page):
             await persist()
             return True
         except (ValueError, StopIteration, KeyError) as error:
-            set_status(str(error) or "Bilgileri kontrol edip tekrar dene.")
-            return False
+            message = str(error) or "Bilgileri kontrol edip tekrar dene."
+            set_status(message)
+            show_snack(message, color="#FFF1D8")
+            return message
 
     def confirm(title, text, on_yes):
         async def yes(e):
@@ -927,6 +994,8 @@ async def main(page: ft.Page):
         "add_reminder": lambda e: open_reminder(),
         "opening": lambda e: show("opening"),
         "legal": lambda e: open_legal(),
+        "load_demo": lambda e: asyncio.create_task(load_showcase_demo()),
+        "clear_demo": lambda e: asyncio.create_task(clear_showcase_demo()),
         "delete_transaction": delete_transaction,
         "delete_customer": delete_customer,
         "delete_product": delete_product,
@@ -990,17 +1059,36 @@ async def main(page: ft.Page):
     if seed_tax_reminders(workspace):
         await save_workspace(preferences, workspace)
     refresh()
+
+    async def boot_services():
+        try:
+            await membership_client.initialize()
+            await cloud_sync.initialize()
+            if membership_client.signed_in:
+                cloud_sync.attach_membership(membership_client)
+            services_ready["value"] = True
+            refresh()
+        except Exception as error:
+            log.warning("Background services failed at startup: %s", error)
+            set_status("Çevrimdışı kayıt açık · üyelik sonra yenilenebilir")
+        asyncio.create_task(cloud_sync.retry_loop())
+
+    asyncio.create_task(boot_services())
+
     alerts = critical_alerts(records, workspace)
-    if alerts:
+    if alerts and workspace.get("consent_v1"):
         top = alerts[0]
         snack_bg = "#FFF1D8" if top["tone"] == "amber" else ("#D64545" if top["tone"] == "red" else TEAL)
         show_snack(f"{top['title']} — {top['subtitle'][:60]}", color=snack_bg)
     if not workspace.get("consent_v1"):
-        business.show_consent(page, accept_consent)
-    elif not workspace.get("profile", {}).get("business_name"):
-        business.show_profile(page, workspace.get("profile", {}), save_profile)
+        business.show_consent(
+            page,
+            accept_consent,
+            privacy_url=PRIVACY_URL,
+            on_open_url=lambda url: asyncio.create_task(url_launcher.launch_url(url)),
+            on_legal=open_legal,
+        )
 
-    asyncio.create_task(cloud_sync.retry_loop())
     log.info("Nakitçe opened with %d customers and %d transactions", len(records["customers"]), len(records["transactions"]))
 
 

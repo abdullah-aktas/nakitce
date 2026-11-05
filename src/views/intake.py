@@ -3,11 +3,22 @@ from datetime import datetime
 from pathlib import Path
 
 import flet as ft
-from flet_camera import Camera, CameraLensDirection, ResolutionPreset
 
 from ocr_receipt import analyze_attachment
 from voice_commands import parse_voice_command
-from views.common import AMBER_SOFT, GOLD, INK, MINT, MUTED, RED, RED_SOFT, TEAL, WHITE, big_choice
+from views.common import (
+    AMBER_SOFT,
+    GOLD,
+    INK,
+    MINT,
+    MUTED,
+    RED,
+    RED_SOFT,
+    TEAL,
+    WHITE,
+    big_choice,
+    camera_supported,
+)
 
 
 MAX_FILE_BYTES = 1_500_000
@@ -18,8 +29,13 @@ ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "csv"]
 def show(page, file_picker, submit, saved_evidence, initial_type="income"):
     selected_type = {"value": initial_type if initial_type in {"income", "expense", "debt"} else "income"}
     attachments = []
-    camera = Camera(width=340, height=220, visible=False)
+    use_camera = camera_supported(page)
+    camera = None
     camera_ready = {"value": False}
+    if use_camera:
+        from flet_camera import Camera, CameraLensDirection, ResolutionPreset
+
+        camera = Camera(width=340, height=220, visible=False)
     existing_size = sum(
         len(base64.b64decode(item.get("data", "")))
         for items in saved_evidence.values()
@@ -32,22 +48,30 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         multiline=True,
         min_lines=2,
         max_lines=4,
-        border_radius=16,
         filled=True,
         bgcolor=WHITE,
     )
-    amount = ft.TextField(label="Tutar (TL)", keyboard_type=ft.KeyboardType.NUMBER, border_radius=16, filled=True, bgcolor=WHITE)
-    title = ft.TextField(label="Açıklama", border_radius=16, filled=True, bgcolor=WHITE)
-    customer = ft.TextField(label="Müşteri adı · veresiye", visible=selected_type["value"] == "debt", border_radius=16, filled=True, bgcolor=WHITE)
+    amount = ft.TextField(label="Tutar (TL)", keyboard_type=ft.KeyboardType.NUMBER, filled=True, bgcolor=WHITE)
+    title = ft.TextField(label="Açıklama", filled=True, bgcolor=WHITE)
+    customer = ft.TextField(
+        label="Müşteri adı · veresiye",
+        visible=selected_type["value"] == "debt",
+        filled=True,
+        bgcolor=WHITE,
+    )
     due_date = ft.TextField(
         label="Vade (YYYY-AA-GG)",
         hint_text="Boş bırakırsan 30 gün sonrası",
         visible=selected_type["value"] == "debt",
-        border_radius=16,
         filled=True,
         bgcolor=WHITE,
     )
-    notice = ft.Text("Yeşil = Aldım, kırmızı = Verdim. Mikrofon için yazı alanına dokun.", color=MUTED, size=12)
+    notice = ft.Text(
+        "Yeşil = Aldım, kırmızı = Verdim. Mikrofon için yazı alanına dokun."
+        + ("" if use_camera else " Masaüstünde fiş için galeri / PDF kullan."),
+        color=MUTED,
+        size=12,
+    )
     evidence_label = ft.Text("Fiş eklenmedi.", color=MUTED, size=12)
     summary = ft.Text("", color=TEAL, size=13, weight=ft.FontWeight.W_600)
     type_chips = {}
@@ -63,7 +87,7 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
                 wrapper.content.color = WHITE if selected else RED
             else:
                 wrapper.bgcolor = GOLD if selected else AMBER_SOFT
-                wrapper.content.color = INK  # sarı zeminde beyaz okunmaz
+                wrapper.content.color = INK
         customer.visible = selected_type["value"] == "debt"
         due_date.visible = selected_type["value"] == "debt"
         page.update()
@@ -88,7 +112,6 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         )
         type_chips[kind] = wrapper
         type_row.controls.append(wrapper)
-    refresh_type_ui()
 
     def refresh_evidence_label():
         if attachments:
@@ -145,6 +168,10 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
     voice_text.on_change = on_voice_text_change
 
     async def open_camera():
+        if not use_camera or camera is None:
+            notice.value = "Bu cihazda kamera yok. Galeri / PDF ile fiş yükle."
+            page.update()
+            return
         camera.visible = True
         notice.value = "Kamera açılıyor…"
         page.update()
@@ -170,7 +197,7 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         page.update()
 
     async def capture_photo():
-        if not camera_ready["value"]:
+        if not camera_ready["value"] or camera is None:
             return
         try:
             data = await camera.take_picture()
@@ -217,7 +244,7 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
                 allow_multiple=True,
                 with_data=True,
             )
-            for item in picked:
+            for item in picked or []:
                 data = item.bytes
                 extension = Path(item.name).suffix.lower()
                 mime = (
@@ -267,11 +294,16 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
             "due_date": due_date.value or "",
             "attachments": list(attachments),
         }
-        if await submit("intake", values, None):
+        result = await submit("intake", values, None)
+        if result is True:
             page.pop_dialog()
+            return
+        notice.value = result if isinstance(result, str) else "Bilgileri kontrol edip tekrar dene."
+        notice.color = RED
+        page.update()
 
     async def cleanup():
-        if camera_ready["value"]:
+        if camera is not None and camera_ready["value"]:
             try:
                 await camera.pause_preview()
             except Exception:
@@ -284,15 +316,99 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         bgcolor=TEAL,
         color="white",
         disabled=True,
+        visible=use_camera,
     )
 
-    quick_row = ft.Row(
-        spacing=10,
-        controls=[
-            big_choice("Aldım", "Kasaya para girdi", lambda e: select_type("income"), tone="teal"),
-            big_choice("Verdim", "Kasadan para çıktı", lambda e: select_type("expense"), tone="red"),
-        ],
+    camera_controls = []
+    if use_camera:
+        camera_controls = [
+            ft.Button(content="Kamerayla oku", on_click=open_camera, bgcolor="#EAF2FF", color=INK),
+            capture_button,
+        ]
+    camera_controls.append(ft.Button(content="Galeriden / PDF", on_click=upload_files, bgcolor="#F2F5F4", color=INK))
+    camera_controls.append(ft.TextButton(content="Ekleri temizle", on_click=clear_attachments))
+
+    content_controls = [
+        ft.Row(
+            spacing=10,
+            controls=[
+                big_choice("Aldım", "Kasaya para girdi", lambda e: select_type("income"), tone="teal"),
+                big_choice("Verdim", "Kasadan para çıktı", lambda e: select_type("expense"), tone="red"),
+            ],
+        ),
+        ft.Container(
+            padding=12,
+            border_radius=18,
+            bgcolor=WHITE,
+            border=ft.Border.all(1, "#DCE8E4"),
+            content=ft.Column(
+                spacing=8,
+                tight=True,
+                controls=[
+                    ft.Text("Tek dokunuş", color=INK, weight=ft.FontWeight.W_700),
+                    type_row,
+                    ft.TextButton(content="Veresiye yaz", on_click=lambda e: select_type("debt")),
+                ],
+            ),
+        ),
+        ft.Container(
+            padding=14,
+            border_radius=18,
+            gradient=ft.LinearGradient(colors=["#0B1C2C", "#168F79"]),
+            content=ft.Column(
+                spacing=8,
+                controls=[
+                    ft.Text("Sesle kayıt", color=WHITE, weight=ft.FontWeight.BOLD, size=16),
+                    ft.Text(
+                        "Dükkandayken yazma. Konuş: “Ahmet Yılmaz'a 450 TL veresiye yaz”",
+                        color="#D7F5EE",
+                        size=12,
+                    ),
+                    voice_text,
+                    ft.TextButton(
+                        content="Mikrofon alanına geç",
+                        on_click=focus_dictation,
+                        style=ft.ButtonStyle(color=WHITE),
+                    ),
+                    summary,
+                ],
+            ),
+        ),
+        ft.Text("Fiş / fatura", color=INK, weight=ft.FontWeight.W_700),
+        ft.Row(wrap=True, spacing=8, controls=camera_controls),
+    ]
+    if camera is not None:
+        content_controls.append(camera)
+    content_controls.extend(
+        [
+            evidence_label,
+            amount,
+            title,
+            customer,
+            due_date,
+            notice,
+            ft.Text(
+                "Fotoğraf OCR internet gerektirir (ücretsiz kota). Metinli PDF cihazda okunur. "
+                "Ses, cihaz klavyesinin mikrofonuyla alınır; Nakitçe ses dosyası kaydetmez."
+                + ("" if use_camera else " Bu bilgisayarda kamera yok — galeri / PDF kullan."),
+                color=MUTED,
+                size=11,
+            ),
+        ]
     )
+
+    # Tip renkleri diyalog açılmadan page.update tetiklemesin
+    for kind, wrapper in type_chips.items():
+        selected = selected_type["value"] == kind
+        if kind == "income":
+            wrapper.bgcolor = TEAL if selected else MINT
+            wrapper.content.color = WHITE if selected else TEAL
+        elif kind == "expense":
+            wrapper.bgcolor = RED if selected else RED_SOFT
+            wrapper.content.color = WHITE if selected else RED
+        else:
+            wrapper.bgcolor = GOLD if selected else AMBER_SOFT
+            wrapper.content.color = INK
 
     dialog = ft.AlertDialog(
         modal=True,
@@ -303,70 +419,7 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
             tight=True,
             scroll=ft.ScrollMode.AUTO,
             spacing=12,
-            controls=[
-                quick_row,
-                ft.Container(
-                    padding=12,
-                    border_radius=18,
-                    bgcolor=WHITE,
-                    border=ft.Border.all(1, "#DCE8E4"),
-                    content=ft.Column(
-                        spacing=8,
-                        tight=True,
-                        controls=[
-                            ft.Text("Tek dokunuş", color=INK, weight=ft.FontWeight.W_700),
-                            type_row,
-                            ft.TextButton(content="Veresiye yaz", on_click=lambda e: select_type("debt")),
-                        ],
-                    ),
-                ),
-                ft.Container(
-                    padding=14,
-                    border_radius=18,
-                    gradient=ft.LinearGradient(colors=["#0B1C2C", "#168F79"]),
-                    content=ft.Column(
-                        spacing=8,
-                        controls=[
-                            ft.Text("Sesle kayıt", color=WHITE, weight=ft.FontWeight.BOLD, size=16),
-                            ft.Text(
-                                "Dükkandayken yazma. Konuş: “Ahmet Yılmaz'a 450 TL veresiye yaz”",
-                                color="#D7F5EE",
-                                size=12,
-                            ),
-                            voice_text,
-                            ft.TextButton(
-                                content="Mikrofon alanına geç",
-                                on_click=focus_dictation,
-                                style=ft.ButtonStyle(color=WHITE),
-                            ),
-                            summary,
-                        ],
-                    ),
-                ),
-                ft.Text("Fiş / fatura", color=INK, weight=ft.FontWeight.W_700),
-                ft.Row(
-                    wrap=True,
-                    spacing=8,
-                    controls=[
-                        ft.Button(content="Kamerayla oku", on_click=open_camera, bgcolor="#EAF2FF", color=INK),
-                        ft.Button(content="Galeriden / PDF", on_click=upload_files, bgcolor="#F2F5F4", color=INK),
-                        ft.TextButton(content="Ekleri temizle", on_click=clear_attachments),
-                    ],
-                ),
-                camera,
-                capture_button,
-                evidence_label,
-                amount,
-                title,
-                customer,
-                due_date,
-                notice,
-                ft.Text(
-                    "Fotoğraf OCR internet gerektirir (ücretsiz kota). Metinli PDF cihazda okunur. Ses, cihaz klavyesinin mikrofonuyla alınır; Nakitçe ses dosyası kaydetmez.",
-                    color=MUTED,
-                    size=11,
-                ),
-            ],
+            controls=content_controls,
         ),
         actions=[
             ft.TextButton(content="Vazgeç", on_click=lambda e: page.pop_dialog()),

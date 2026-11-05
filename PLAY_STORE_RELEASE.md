@@ -26,7 +26,8 @@ python scripts\export_store_assets.py
 - Simge: `store/assets/icon_512.png` (512×512, opak kare; kırmızı kalp + altın ₺)
 - Uygulama ikonu: `src/assets/icon.png` (1024×1024); yalnızca ikonları yenilemek için `python scripts\generate_icon.py`
 - Özellik grafiği: `store/assets/play_feature_graphic.png` (1024×500)
-- Ekran görüntüleri: gerçek Android cihazdan (zorunlu; bu depoda yok)
+- Ekran görüntüleri: `store/assets/screenshots/` (1080×1920, 5 adet; `python scripts\generate_play_screenshots.py`)
+  - İdeal ek: gerçek Android cihazdan 2+ görüntü
 
 ## 2. AAB üretimi
 
