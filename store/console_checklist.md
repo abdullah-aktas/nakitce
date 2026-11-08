@@ -1,14 +1,14 @@
 # Nakitçe — Play Console yayın kontrol listesi
 
 Package ID (org + proje): `com.mirasteknoloji.nakitce`  
-Sürüm adı: `1.0.0` · build number: `1` (her yüklemede artır)
+Sürüm adı: `1.0.0` · build number: `2` (her yüklemede artır)
 
 ## A. Bu depoda hazır
 
 - [x] Marka: Nakitçe, logo/ikon/özellik grafiği
 - [x] Mağaza metni: `store/listing_tr.txt`
 - [x] Veri güvenliği taslağı: `store/data_safety_tr.md`
-- [x] Gizlilik politikası metni: `PRIVACY_POLICY_TR.md`
+- [x] Gizlilik politikası: `docs/privacy.html` (+ `PRIVACY_POLICY_TR.md`)
 - [x] Android izinleri: `pyproject.toml` (INTERNET + CAMERA)
 - [x] AAB derleme betiği: `scripts/build_play_aab.ps1`
 - [x] Raster grafikler: `store/assets/icon_512.png`, `store/assets/play_feature_graphic.png`
@@ -30,7 +30,7 @@ Sürüm adı: `1.0.0` · build number: `1` (her yüklemede artır)
    $env:FLET_ANDROID_SIGNING_KEY_ALIAS="upload"
    .\scripts\build_play_aab.ps1
    ```
-3. **Gizlilik URL’si** — `PRIVACY_POLICY_TR.md` içeriğini HTTPS’te yayımla.
+3. **Gizlilik URL’si** — GitHub Pages: Settings → Pages → `main` / `/docs` → `https://abdullah-aktas.github.io/nakitce/privacy.html`
 4. **Play Console** — uygulama oluştur (ad: Nakitçe).
 5. **Dahili test** — imzalı `build\aab\nakitce.aab` yükle; paket ID’yi doğrula.
 6. **Mağaza listesi** — `store/listing_tr.txt` + `store/assets/*` + `store/assets/screenshots/*` (isteğe bağlı gerçek cihaz ekle).

@@ -1,6 +1,7 @@
 import flet as ft
 
 from membership import current_plan, membership_summary
+from membership_config import SUPPORT_EMAIL
 from views.common import INK, MUTED, TEAL, action_button, card, heading, money, section_label
 
 
@@ -117,8 +118,8 @@ def build(records, actions, sync_state, workspace=None):
                             size=12,
                         ),
                         ft.Text(
-                            "Serbest bölge: Aldım/Verdim, veresiye, WhatsApp ekstre, fiş OCR ve stok ücretsiz. "
-                            "Premium: POS takibi, teklif, bulut, 12 aylık grafik, banka CSV.",
+                            "Ücretsiz: ayda 30 Aldım/Verdim, ayda 8 WhatsApp. Veresiye sınırsız. "
+                            "Premium: sınırsız kasa ve WhatsApp, bulut yedek, POS, teklif, banka CSV.",
                             color=MUTED,
                             size=11,
                         ),
@@ -284,10 +285,20 @@ def build(records, actions, sync_state, workspace=None):
                 else []
             ),
             card(
-                ft.Text(
-                    "İnternet yokken kayıtlar bu cihazda kalır. SoftPOS / kart okuma vaadi yoktur.",
-                    color=MUTED,
-                    size=12,
+                ft.Column(
+                    spacing=6,
+                    controls=[
+                        ft.Text(
+                            "İnternet yokken kayıtlar bu cihazda kalır. SoftPOS / kart okuma vaadi yoktur.",
+                            color=MUTED,
+                            size=12,
+                        ),
+                        ft.Text(
+                            f"Destek: {SUPPORT_EMAIL}" if SUPPORT_EMAIL else "Destek: Araçlar → Üyelik",
+                            color=MUTED,
+                            size=12,
+                        ),
+                    ],
                 )
             ),
         ],

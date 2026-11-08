@@ -19,5 +19,6 @@ APP_SUPABASE_ANON_KEY = MEMBERSHIP_SUPABASE_ANON_KEY
 # Satış / destek. PAYMENT_URL doluysa üyelik ekranında 'Web'den satın al' görünür.
 PRICE_TEXT = "Aylık 99,99 TL · Yıllık 999,99 TL"
 PAYMENT_URL = ""
-SUPPORT_EMAIL = ""
-PRIVACY_URL = ""
+SUPPORT_EMAIL = "teknolojimiras@gmail.com"
+# GitHub Pages (Settings → Pages → main / docs). Yerel yedek: PRIVACY_POLICY_TR.md
+PRIVACY_URL = "https://abdullah-aktas.github.io/nakitce/privacy.html"

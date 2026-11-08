@@ -136,6 +136,14 @@ class MembershipClient:
         await self.refresh_status()
         return "Giriş yapıldı; üyelik sunucudan doğrulandı."
 
+    async def request_password_reset(self, email):
+        email = (email or "").strip()
+        if not email or "@" not in email:
+            raise MembershipApiError("Parola sıfırlamak için geçerli e-posta yaz.")
+        await self._auth_request("recover", {"email": email})
+        self.message = "Parola sıfırlama bağlantısı e-postana gönderildi."
+        return self.message
+
     async def sign_out(self):
         self.session = {}
         self.status = None

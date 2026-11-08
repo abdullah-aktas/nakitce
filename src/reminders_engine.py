@@ -22,10 +22,10 @@ TAX_HINTS = [
         "lead_days": (2,),
     },
     {
-        "id": "babs",
+        "id": "month_end",
         "day": 0,  # ayın son günü
-        "title": "BA-BS formu hatırlatması",
-        "note": "Ba-Bs yükümlülüğün varsa ay sonu evrakını kontrol et. Resmî tarih GİB tebliğine göredir.",
+        "title": "Ay sonu evrak kontrolü",
+        "note": "Defter, fiş ve banka hareketlerini toparla. Beyan takvimini mali müşavirinle doğrula.",
         "lead_days": (3, 0),
     },
 ]
@@ -146,7 +146,7 @@ def critical_alerts(records, workspace, today=None) -> list[dict]:
 
 
 def seed_tax_reminders(workspace, today=None) -> list[dict]:
-    """Eksikse ayın KDV / BA-BS hatırlatmalarını ekler (yinelenmez)."""
+    """Eksikse ayın KDV / ay sonu hatırlatmalarını ekler (yinelenmez)."""
     today = today or date.today()
     existing = {(item.get("title"), item.get("date")) for item in workspace.get("reminders", [])}
     added = []
@@ -175,6 +175,41 @@ def seed_tax_reminders(workspace, today=None) -> list[dict]:
         workspace.setdefault("reminders", []).append(item)
         added.append(item)
     return added
+
+
+def collection_queue(records, today=None, limit=3) -> list[dict]:
+    """Borcu olan müşteriler: vadesi geçmiş önce, sonra en büyük bakiye."""
+    today = today or date.today()
+    ranked = []
+    for customer in records.get("customers", []):
+        balance = float(customer.get("balance") or 0)
+        if balance <= 0:
+            continue
+        due_raw = customer.get("due_date") or ""
+        try:
+            due = date.fromisoformat(due_raw) if due_raw else None
+        except ValueError:
+            due = None
+        days_left = (due - today).days if due else 10_000
+        ranked.append((days_left, -balance, customer))
+    ranked.sort(key=lambda row: (row[0], row[1]))
+    return [row[2] for row in ranked[:limit]]
+
+
+def whatsapp_payment_received_message(customer, amount, profile=None) -> str:
+    profile = profile or {}
+    business = profile.get("business_name") or "işletmemiz"
+    owner = (profile.get("owner") or "").strip()
+    paid = f"{float(amount):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    left = f"{float(customer.get('balance') or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    sign = owner or business
+    return (
+        f"Merhaba {customer['name']},\n\n"
+        f"*{business}* olarak ödemenizi aldık.\n"
+        f"Tahsil edilen: *{paid} TL*.\n"
+        f"Kalan açık hesap: *{left} TL*.\n\n"
+        f"Teşekkür ederiz.\n{sign}"
+    )
 
 
 def whatsapp_reminder_message(customer, profile=None) -> str:

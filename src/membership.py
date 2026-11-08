@@ -6,9 +6,8 @@ That cache must never invent or extend a trial from the device clock.
 
 from datetime import datetime, timezone
 
-# Serbest bölge: temel kasa / veresiye / stok cömert; Premium gelişmiş araçlar için.
+# Müşteri, stok ve hatırlatma tavanı. Aldım/Verdim ve WhatsApp kotası free_quota.py içindedir.
 BASIC_LIMITS = {
-    "monthly_transactions": 500,
     "customers": 200,
     "products": 300,
     "reminders": 40,

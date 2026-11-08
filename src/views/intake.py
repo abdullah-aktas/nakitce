@@ -1,5 +1,5 @@
 import base64
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import flet as ft
@@ -26,7 +26,8 @@ MAX_EVIDENCE_BYTES = 3_000_000
 ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "csv"]
 
 
-def show(page, file_picker, submit, saved_evidence, initial_type="income"):
+def show(page, file_picker, submit, saved_evidence, initial_type="income", recent_customers=None):
+    recent_customers = [name for name in (recent_customers or []) if name]
     selected_type = {"value": initial_type if initial_type in {"income", "expense", "debt"} else "income"}
     attachments = []
     use_camera = camera_supported(page)
@@ -66,6 +67,22 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         filled=True,
         bgcolor=WHITE,
     )
+
+    def set_due(days):
+        due_date.value = (date.today() + timedelta(days=days)).isoformat()
+        select_type("debt")
+        page.update()
+
+    due_quick = ft.Row(
+        wrap=True,
+        spacing=6,
+        visible=selected_type["value"] == "debt",
+        controls=[
+            ft.TextButton(content="Bugün", on_click=lambda e: set_due(0)),
+            ft.TextButton(content="Yarın", on_click=lambda e: set_due(1)),
+            ft.TextButton(content="+30 gün", on_click=lambda e: set_due(30)),
+        ],
+    )
     notice = ft.Text(
         "Yeşil = Aldım, kırmızı = Verdim. Mikrofon için yazı alanına dokun."
         + ("" if use_camera else " Masaüstünde fiş için galeri / PDF kullan."),
@@ -90,6 +107,7 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
                 wrapper.content.color = INK
         customer.visible = selected_type["value"] == "debt"
         due_date.visible = selected_type["value"] == "debt"
+        due_quick.visible = selected_type["value"] == "debt"
         page.update()
 
     def select_type(kind):
@@ -112,6 +130,25 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
         )
         type_chips[kind] = wrapper
         type_row.controls.append(wrapper)
+
+    def pick_recent(name):
+        customer.value = name
+        select_type("debt")
+
+    recent_row = ft.Row(
+        wrap=True,
+        spacing=8,
+        visible=bool(recent_customers),
+        controls=[
+            ft.Button(
+                content=name,
+                bgcolor=AMBER_SOFT,
+                color=INK,
+                on_click=lambda e, picked=name: pick_recent(picked),
+            )
+            for name in recent_customers
+        ],
+    )
 
     def refresh_evidence_label():
         if attachments:
@@ -382,10 +419,13 @@ def show(page, file_picker, submit, saved_evidence, initial_type="income"):
     content_controls.extend(
         [
             evidence_label,
+            ft.Text("Veresiye için son müşteriler", color=INK, weight=ft.FontWeight.W_700, visible=bool(recent_customers)),
+            recent_row,
             amount,
             title,
             customer,
             due_date,
+            due_quick,
             notice,
             ft.Text(
                 "Fotoğraf OCR internet gerektirir (ücretsiz kota). Metinli PDF cihazda okunur. "

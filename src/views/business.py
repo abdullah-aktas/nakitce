@@ -127,7 +127,22 @@ def show_profile(page, profile, submit):
     )
 
 
-def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh, on_purchase=None, billing_available=False, on_redeem=None, on_delete_account=None, on_legal=None, on_web_pay=None, price_text=""):
+def show_membership(
+    page,
+    membership,
+    on_mode_change,
+    on_auth_action,
+    on_refresh,
+    on_purchase=None,
+    billing_available=False,
+    on_redeem=None,
+    on_delete_account=None,
+    on_legal=None,
+    on_web_pay=None,
+    on_password_reset=None,
+    price_text="",
+    show_redeem=False,
+):
     mode = membership.get("mode", "simple")
     plan_text = membership.get("membership_label", "Sunucu üyeliği doğrulanmadı")
     premium_active = membership.get("premium_access", False)
@@ -145,6 +160,18 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
         await on_auth_action(action, email_field.value or "", password_field.value or "")
         page.pop_dialog()
 
+    async def reset_password(e):
+        if not on_password_reset:
+            return
+        try:
+            result = await on_password_reset(email_field.value or "")
+            message.value = result
+            message.color = TEAL
+        except Exception as error:
+            message.value = str(error)
+            message.color = "#D64545"
+        page.update()
+
     controls = [
         ft.Container(
             padding=14,
@@ -156,7 +183,7 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
                 controls=[
                     ft.Text("Serbest bölge · ücretsiz", color=TEAL, weight=ft.FontWeight.BOLD),
                     ft.Text(
-                        "Aldım/Verdim, veresiye, WhatsApp PDF, sesle kayıt, fiş OCR, stok, kritik günler.",
+                        "Ayda 30 Aldım/Verdim ve 8 WhatsApp gönderimi ücretsiz. Veresiye, fiş okuma, stok ve kritik günler sınırlı değil.",
                         color=INK,
                         size=12,
                     ),
@@ -173,7 +200,7 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
                 controls=[
                     ft.Text("Premium", color=INK, weight=ft.FontWeight.BOLD),
                     ft.Text(
-                        "POS takibi, teklif, banka CSV, Nakitçe bulutu (Miras), 12 aylık grafik, ileri ekran.",
+                        "Sınırsız Aldım/Verdim ve WhatsApp, bulut yedek, POS takibi, teklif, banka CSV, 12 aylık grafik.",
                         color=INK,
                         size=12,
                     ),
@@ -194,23 +221,24 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
         )
     elif signed_in:
         controls.append(ft.Text(f"Hesap: {membership.get('email', '')}", color=INK, size=12))
-        code_field = ft.TextField(label="Aktivasyon kodu (XXXX-XXXX-XXXX)", capitalization=ft.TextCapitalization.CHARACTERS)
+        # Aktivasyon kodu App Store / Play incelemesinde dış ödeme sayılır; yalnızca bilinçli açılır.
+        if show_redeem and on_redeem:
+            code_field = ft.TextField(label="Aktivasyon kodu (XXXX-XXXX-XXXX)", capitalization=ft.TextCapitalization.CHARACTERS)
 
-        async def redeem(e):
-            if on_redeem:
+            async def redeem(e):
                 await on_redeem(code_field.value or "")
                 page.pop_dialog()
 
-        controls.append(
-            ft.Row(
-                wrap=True,
-                controls=[
-                    code_field,
-                    ft.Button(content="Kodu kullan", on_click=redeem, bgcolor=TEAL, color="white"),
-                ],
+            controls.append(
+                ft.Row(
+                    wrap=True,
+                    controls=[
+                        code_field,
+                        ft.Button(content="Kodu kullan", on_click=redeem, bgcolor=TEAL, color="white"),
+                    ],
+                )
             )
-        )
-        if on_web_pay:
+        if on_web_pay and show_redeem:
             controls.append(ft.Button(content="Web'den Premium satın al", on_click=lambda e: on_web_pay()))
         controls.append(
             ft.Row(
@@ -232,6 +260,7 @@ def show_membership(page, membership, on_mode_change, on_auth_action, on_refresh
                     controls=[
                         ft.Button(content="Hesap oluştur", on_click=lambda e: auth_action("sign_up"), bgcolor=TEAL, color="white"),
                         ft.Button(content="Giriş yap", on_click=lambda e: auth_action("sign_in")),
+                        *([ft.TextButton(content="Parolamı unuttum", on_click=reset_password)] if on_password_reset else []),
                     ],
                 ),
             ]
@@ -344,7 +373,7 @@ def show_reminder(page, submit, sector=""):
     presets = [
         ("Yarın KDV günü olabilir", 1, "Tebligatını kontrol et — resmî tarih GİB'e göredir."),
         ("Komşunun / müşterinin borç vadesi", 0, "Açık hesabı olan müşteriyi ara veya WhatsApp'la."),
-        ("BA-BS / ay sonu evrak", max(0, (date.today().replace(day=28) - date.today()).days), "Ba-Bs yükümlülüğün varsa mali müşavirinle doğrula."),
+        ("Ay sonu evrak kontrolü", max(0, (date.today().replace(day=28) - date.today()).days), "Defter ve fişleri toparla; beyanı mali müşavirinle doğrula."),
         (suggested_title, 7, "Sektörüne özel kontrol."),
     ]
     fields = {
@@ -352,16 +381,33 @@ def show_reminder(page, submit, sector=""):
         "date": ft.TextField(label="Tarih (YYYY-AA-GG)", value=(date.today() + timedelta(days=1)).isoformat()),
         "note": ft.TextField(label="Not", value=presets[0][2], multiline=True, min_lines=2, max_lines=3),
     }
+    notice = ft.Text("", color="#D64545", size=12, visible=False)
 
     def apply_preset(title, days, note):
         fields["title"].value = title
         fields["date"].value = (date.today() + timedelta(days=days)).isoformat()
         fields["note"].value = note
+        notice.visible = False
+        page.update()
+
+    def set_relative_date(days):
+        fields["date"].value = (date.today() + timedelta(days=days)).isoformat()
+        notice.visible = False
         page.update()
 
     async def save():
         values = {key: field.value or "" for key, field in fields.items()}
-        if not values["title"].strip() or not values["date"].strip():
+        if not values["title"].strip():
+            notice.value = "Başlık yaz."
+            notice.visible = True
+            page.update()
+            return
+        try:
+            date.fromisoformat(values["date"].strip())
+        except ValueError:
+            notice.value = "Tarihi YYYY-AA-GG yaz veya Bugün / Yarın seç."
+            notice.visible = True
+            page.update()
             return
         if await submit(values):
             page.pop_dialog()
@@ -387,7 +433,19 @@ def show_reminder(page, submit, sector=""):
                             for title, days, note in presets
                         ],
                     ),
-                    *fields.values(),
+                    fields["title"],
+                    fields["date"],
+                    ft.Row(
+                        wrap=True,
+                        spacing=6,
+                        controls=[
+                            ft.TextButton(content="Bugün", on_click=lambda e: set_relative_date(0)),
+                            ft.TextButton(content="Yarın", on_click=lambda e: set_relative_date(1)),
+                            ft.TextButton(content="+7 gün", on_click=lambda e: set_relative_date(7)),
+                        ],
+                    ),
+                    fields["note"],
+                    notice,
                 ],
             ),
             actions=[

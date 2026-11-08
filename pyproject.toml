@@ -31,7 +31,7 @@ org = "com.mirasteknoloji"
 product = "Nakitçe"
 company = "Miras Teknoloji"
 copyright = "Copyright (C) 2026 by Miras Teknoloji"
-build_number = 1
+build_number = 2
 icon_background = "#0B1C2C"
 # Camera for optional receipt photos; internet for membership/sync/external links.
 permissions = ["camera"]

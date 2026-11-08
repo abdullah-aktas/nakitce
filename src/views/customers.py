@@ -1,9 +1,14 @@
 import flet as ft
 
+from free_quota import FREE_WHATSAPP_MONTHLY, whatsapp_used
+from membership import premium_access
 from views.common import AMBER_SOFT, INK, MINT, MUTED, TEAL, action_button, card, heading, money, section_label
 
 
-def build(records, actions):
+def build(records, actions, workspace=None):
+    workspace = workspace or {}
+    premium = premium_access(workspace.get("_server_membership_status"))
+    wa_used = whatsapp_used(workspace)
     rows = []
     open_balance = sum(c.get("balance", 0) for c in records["customers"] if c.get("balance", 0) > 0)
     debtor_count = sum(1 for c in records["customers"] if c.get("balance", 0) > 0)
@@ -135,7 +140,12 @@ def build(records, actions):
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         spacing=14,
         controls=[
-            heading("Veresiye defteri", "Nakitçe hatırlatır — şık PDF + WhatsApp."),
+            heading(
+                "Veresiye defteri",
+                "Sınırsız WhatsApp ekstresi."
+                if premium
+                else f"WhatsApp bu ay {min(wa_used, FREE_WHATSAPP_MONTHLY)}/{FREE_WHATSAPP_MONTHLY} ücretsiz. Veresiye yazmak sınırlı değil.",
+            ),
             hero,
             action_button("+ Müşteri ekle", actions["add"], primary=True),
             section_label(f"Müşterilerim · {len(records['customers'])}"),

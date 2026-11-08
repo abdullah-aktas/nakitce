@@ -11,8 +11,8 @@ Esnafın cebindeki kasa defteri — **Aldım / Verdim**, veresiye, stok ve nakit
 - Kamerayla / PDF ile fiş okuma (OCR; internetli fotoğraf, metinli PDF yerelde)
 - Kritik gün hatırlatıcıları (KDV, BA-BS, müşteri vadesi — bilgilendirme amaçlı)
 - Pasta grafik, stok, hızlı satış
-- **Serbest bölge (ücretsiz):** kasa, veresiye, WhatsApp ekstre, OCR, stok
-- **Premium:** POS tahsilat takibi, teklif, banka CSV, bulut, 12 aylık grafik
+- **Serbest bölge (ücretsiz):** ayda 30 Aldım/Verdim, ayda 8 WhatsApp gönderimi, sınırsız veresiye, fiş okuma, stok
+- **Premium:** sınırsız kasa ve WhatsApp, bulut yedek, POS tahsilat takibi, teklif, banka CSV, 12 aylık grafik
 - Nakitçe bulutu (Miras Supabase) — kullanıcı kendi proje açmaz; hesapla giriş + Premium eşitleme
 - GİB e-Arşiv: hazırlık panoya + resmi portal (uygulama içinde fatura kesmez)
 - SoftPOS / temassız kart okuma **yok** (lisanslı banka ürünü gerekir); kart satışlarının hesaba geçişini takip edersin

@@ -2,8 +2,16 @@ from datetime import date
 
 import flet as ft
 
+from free_quota import (
+    FREE_CASH_OPS_MONTHLY,
+    FREE_WHATSAPP_MONTHLY,
+    cash_ops_used,
+    day_totals,
+    month_collected,
+    whatsapp_used,
+)
 from membership import premium_access
-from reminders_engine import critical_alerts
+from reminders_engine import collection_queue, critical_alerts
 from views.business import SECTOR_CONFIG, SECTOR_REMINDER_HINTS
 from views.common import (
     INK,
@@ -34,6 +42,16 @@ def build(records, actions, workspace=None):
     pending_pos = sum(p["net"] for p in records["pos"] if not p["paid"])
     low_stock = sum(1 for p in records["products"] if p["min_qty"] and p["qty"] <= p["min_qty"])
     alerts = critical_alerts(records, workspace)
+    today = date.today()
+    server_status = workspace.get("_server_membership_status")
+    is_premium = premium_access(server_status)
+    cash_used = cash_ops_used(records.get("transactions"), today)
+    wa_used = whatsapp_used(workspace, today)
+    quota_line = (
+        "Sınırsız Aldım, Verdim ve WhatsApp"
+        if is_premium
+        else f"Ücretsiz bu ay · Aldım/Verdim {min(cash_used, FREE_CASH_OPS_MONTHLY)}/{FREE_CASH_OPS_MONTHLY} · WhatsApp {min(wa_used, FREE_WHATSAPP_MONTHLY)}/{FREE_WHATSAPP_MONTHLY}"
+    )
 
     hero = ft.Container(
         padding=20,
@@ -47,12 +65,27 @@ def build(records, actions, workspace=None):
         content=ft.Column(
             spacing=10,
             controls=[
-                ft.Text("Cebindeki kasa defteri", color="#9ED9CB", size=12, weight=ft.FontWeight.W_600),
-                ft.Text(sector_config["title"], color="white", size=28, weight=ft.FontWeight.BOLD),
-                ft.Text(
-                    profile.get("business_name") or "Paranı doğru yönet, kârını gör.",
-                    color="#D7F5EE",
-                    size=14,
+                ft.Text(profile.get("business_name") or "Cebindeki kasa defteri", color="#9ED9CB", size=12, weight=ft.FontWeight.W_600),
+                ft.Text(sector_config["title"], color="white", size=26, weight=ft.FontWeight.BOLD),
+                ft.Row(
+                    controls=[
+                        ft.Column(
+                            expand=True,
+                            spacing=2,
+                            controls=[
+                                ft.Text("Kasada", color="#D7F5EE", size=12),
+                                ft.Text(money(records["cash_balance"]), color="white", size=22, weight=ft.FontWeight.BOLD),
+                            ],
+                        ),
+                        ft.Column(
+                            expand=True,
+                            spacing=2,
+                            controls=[
+                                ft.Text("Alacağın", color="#FFE3A3", size=12),
+                                ft.Text(money(receivables), color="white", size=22, weight=ft.FontWeight.BOLD),
+                            ],
+                        ),
+                    ],
                 ),
                 ft.Row(
                     wrap=True,
@@ -60,9 +93,10 @@ def build(records, actions, workspace=None):
                     controls=[
                         ft.Button(content="Aldım", on_click=actions["income"], bgcolor="#0F9B82", color="white"),
                         ft.Button(content="Verdim", on_click=actions["expense"], bgcolor=RED, color="white"),
-                        ft.Button(content="Sesle / fişle kayıt", on_click=actions["intake"], bgcolor="white", color=INK),
+                        ft.Button(content="Veresiye", on_click=actions["debt"], bgcolor="#E8A317", color=INK),
                     ],
                 ),
+                ft.Text(quota_line, color="#D7F5EE", size=12),
             ],
         ),
     )
@@ -80,10 +114,8 @@ def build(records, actions, workspace=None):
         "expense": ft.Button(content="Verdim", on_click=actions["expense"], bgcolor=RED, color="white"),
         "debt": ft.Button(content="Veresiye", on_click=actions["debt"], bgcolor="#FFF1D8", color=INK),
     }
-    server_status = workspace.get("_server_membership_status")
-    is_premium = premium_access(server_status)
     advanced_mode = workspace.get("mode") == "advanced" and is_premium
-    visible_action_keys = sector_config["actions"] if advanced_mode else sector_config["actions"][:3]
+    visible_action_keys = [key for key in (sector_config["actions"] if advanced_mode else sector_config["actions"][:3]) if key == "sale"]
     quick_actions = ft.Column(
         spacing=8,
         controls=[
@@ -94,8 +126,9 @@ def build(records, actions, workspace=None):
                 spacing=8,
                 controls=[
                     *(sector_action_controls[key] for key in visible_action_keys),
-                    ft.Button(content="GİB e-Arşiv", on_click=actions["open_gib"], bgcolor="#EAF2FF", color="#3565A8"),
-                    *([ft.Button(content="Üyelik", on_click=actions["membership"])] if not advanced_mode else []),
+                    ft.TextButton(content="Sesle / fişle kayıt", on_click=actions["intake"]),
+                    ft.TextButton(content="GİB e-Arşiv", on_click=actions["open_gib"]),
+                    *([ft.Button(content="Üyelik", on_click=actions["membership"])] if not is_premium else []),
                 ],
             ),
         ],
@@ -272,6 +305,104 @@ def build(records, actions, workspace=None):
         )
     )
 
+    def due_label(customer):
+        raw = customer.get("due_date") or ""
+        try:
+            due = date.fromisoformat(raw) if raw else None
+        except ValueError:
+            due = None
+        if due is None:
+            return "Vade yazılmadı"
+        days = (due - today).days
+        if days < 0:
+            return f"{-days} gün gecikti"
+        if days == 0:
+            return "Vade bugün"
+        if days == 1:
+            return "Vade yarın"
+        return f"Vadeye {days} gün"
+
+    queue = collection_queue(records, today, limit=3)
+    call_rows = [
+        card(
+            ft.Row(
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Column(
+                        expand=True,
+                        spacing=2,
+                        controls=[
+                            ft.Text(customer["name"], color=INK, weight=ft.FontWeight.W_700),
+                            ft.Text(
+                                f"{money(customer['balance'])} · {due_label(customer)}",
+                                color=MUTED,
+                                size=12,
+                            ),
+                        ],
+                    ),
+                    ft.Button(
+                        content="WhatsApp",
+                        bgcolor="#25D366",
+                        color="white",
+                        on_click=lambda e, picked=customer: actions["remind"](picked),
+                    ),
+                ],
+            ),
+            bgcolor="#FFF5E2",
+        )
+        for customer in queue
+    ]
+    call_section = ft.Column(
+        spacing=8,
+        controls=[
+            section_label("Bugün ara"),
+            ft.Text(
+                "En acil üç açık hesap. Gönderim ücretsiz hakktan düşer." if not is_premium else "En acil üç açık hesap.",
+                color=MUTED,
+                size=12,
+            ),
+            *(
+                call_rows
+                or [
+                    card(
+                        ft.Column(
+                            spacing=8,
+                            controls=[
+                                ft.Text("Açık hesap yok. Veresiye yazınca sabah burada durur.", color=MUTED, size=13),
+                                ft.Button(content="Veresiye yaz", on_click=actions["debt"], bgcolor="#E8A317", color=INK),
+                            ],
+                        )
+                    )
+                ]
+            ),
+        ],
+    )
+    totals = day_totals(records.get("transactions"), today)
+    close_card = card(
+        ft.Column(
+            spacing=4,
+            controls=[
+                ft.Text("Akşam kapanışı", color=INK, weight=ft.FontWeight.W_700),
+                ft.Text(f"Aldım {money(totals['income'])}", color=TEAL, size=13),
+                ft.Text(f"Verdim {money(totals['expense'])}", color=RED, size=13),
+                ft.Text(f"Yazılan veresiye {money(totals['debt'])}", color="#A66A08", size=13),
+                ft.Text(f"Tahsil edilen {money(totals['collected'])}", color=INK, size=13),
+            ],
+        )
+    )
+    recovered_amount = month_collected(records.get("transactions"), today)
+    recovered_card = card(
+        ft.Column(
+            spacing=4,
+            controls=[
+                ft.Text("Bu ay veresiyeden tahsil ettiğin", color=INK, weight=ft.FontWeight.W_700),
+                ft.Text(money(recovered_amount), color=TEAL, size=22, weight=ft.FontWeight.BOLD),
+                ft.Text("Defterde kalsaydı unutulacak paradır.", color=MUTED, size=12),
+            ],
+        ),
+        bgcolor="#E8F7F2",
+    )
+
     has_any_data = bool(
         records["transactions"]
         or records["customers"]
@@ -302,8 +433,7 @@ def build(records, actions, workspace=None):
             controls=[
                 ft.Text("Hemen başla", color=INK, weight=ft.FontWeight.BOLD, size=16),
                 ft.Text(
-                    "Kasadaki parayı yaz, Aldım / Verdim kaydı gir veya veresiye yaz. "
-                    "İstersen örnek bakkal verisiyle önce gez.",
+                    "Borcu olan müşterileri yaz. Kasaya giren ve çıkan para ile WhatsApp gönderimi aylık ücretsiz hakla sınırlıdır.",
                     color=MUTED,
                     size=12,
                 ),
@@ -362,12 +492,15 @@ def build(records, actions, workspace=None):
             *([demo_banner] if demo_banner else []),
             *([] if has_any_data else [welcome]),
             *([profile_nudge] if profile_nudge else []),
-            heading("Nakit özeti", "Muhasebe değil — paran nerede, kârın ne."),
-            ft.ResponsiveRow(controls=metrics, spacing=12, run_spacing=12),
-            *([chart_card] if chart_total > 0 else []),
+            call_section,
+            close_card,
+            *([recovered_card] if recovered_amount > 0 else []),
             alert_section,
             quick_actions,
             *([follow_ups] if show_follow_ups else []),
+            heading("Bu ay", "Kasada ve alacakta olan yukarıda."),
+            ft.ResponsiveRow(controls=metrics[2:], spacing=12, run_spacing=12),
+            *([chart_card] if chart_total > 0 else []),
             ft.Text(
                 f"Öneri: {SECTOR_REMINDER_HINTS.get(sector, 'İşletme kontrolü')}",
                 color=MUTED,

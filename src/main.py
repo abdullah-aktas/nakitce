@@ -10,13 +10,26 @@ from bank_import import parse_bank_csv
 from exports import csv_report
 from pdf_docs import business_report_pdf, customer_statement_pdf, quote_pdf
 from billing_bridge import BillingBridge, PRODUCT_MONTHLY
+from free_quota import (
+    FREE_CASH_OPS_MONTHLY,
+    FREE_WHATSAPP_MONTHLY,
+    cash_ops_used,
+    note_whatsapp_send,
+    whatsapp_used,
+)
 from membership import BASIC_LIMITS, current_plan, membership_summary, premium_access, trial_days_left
 from membership_api import MembershipApiError, MembershipClient
 from membership_config import PAYMENT_URL, PRICE_TEXT, PRIVACY_URL
 from cloud_sync import CloudSync
 from data import starter_data
 from demo_seed import clear_demo_workspace, showcase_records, showcase_workspace
-from reminders_engine import critical_alerts, default_due_date, seed_tax_reminders, whatsapp_reminder_message
+from reminders_engine import (
+    critical_alerts,
+    default_due_date,
+    seed_tax_reminders,
+    whatsapp_payment_received_message,
+    whatsapp_reminder_message,
+)
 from storage import load_evidence, load_records, load_workspace, save_evidence, save_records, save_workspace
 from views import barcode_lookup, business, customers, dashboard, intake, inventory, ledger, tools
 from views.common import CANVAS, INK, MUTED, TEAL, WHITE
@@ -135,14 +148,18 @@ async def main(page: ft.Page):
             return premium_access(live, allow_cache=False)
         return premium_access(live, allow_cache=True)
 
-    def require_premium(feature):
+    def require_premium(feature, detail=None):
         if premium_active():
             return True
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
                 title=ft.Text("Premium özelliği", color=INK, weight=ft.FontWeight.BOLD),
-                content=ft.Text(f"{feature} Premium kapsamındadır. Erişim yalnızca sunucuda doğrulanmış üyelikle açılır.", color=MUTED),
+                content=ft.Text(
+                    detail
+                    or f"{feature} Premium kapsamındadır. Erişim yalnızca sunucuda doğrulanmış üyelikle açılır.",
+                    color=MUTED,
+                ),
                 actions=[
                     ft.TextButton(content="Kapat", on_click=lambda e: page.pop_dialog()),
                     ft.Button(content="Üyelik bilgisi", on_click=lambda e: (page.pop_dialog(), open_membership())),
@@ -151,6 +168,53 @@ async def main(page: ft.Page):
         )
         return False
 
+    def allow_cash_op():
+        if premium_active():
+            return True
+        used = cash_ops_used(records["transactions"])
+        if used < FREE_CASH_OPS_MONTHLY:
+            return True
+        require_premium(
+            "Kasa hakkı",
+            detail=(
+                f"Bu ay {FREE_CASH_OPS_MONTHLY} ücretsiz Aldım/Verdim hakkın doldu. "
+                "Veresiye yazmaya devam edebilirsin. Sınırsız kasa Premium ile açılır."
+            ),
+        )
+        return False
+
+    def allow_whatsapp():
+        if premium_active():
+            return True
+        used = whatsapp_used(workspace)
+        if used < FREE_WHATSAPP_MONTHLY:
+            return True
+        require_premium(
+            "WhatsApp",
+            detail=(
+                f"Bu ay {FREE_WHATSAPP_MONTHLY} ücretsiz WhatsApp gönderimin doldu. "
+                "Sınırsız ekstre Premium ile açılır."
+            ),
+        )
+        return False
+
+    def recent_customer_names(limit=6):
+        seen = []
+        by_id = {item["id"]: item for item in records["customers"]}
+        ordered = sorted(records["transactions"], key=lambda item: int(item.get("id", 0)), reverse=True)
+        for item in ordered:
+            customer = by_id.get(item.get("customer_id"))
+            if customer is None:
+                continue
+            name = (customer.get("name") or "").strip()
+            if name and name not in seen:
+                seen.append(name)
+            if len(seen) >= limit:
+                break
+        if not seen:
+            seen = [item["name"] for item in records["customers"] if item.get("name")][:limit]
+        return seen
+
     def ensure_basic_capacity(limit_name, current_value):
         if premium_active() or current_value < BASIC_LIMITS[limit_name]:
             return True
@@ -158,6 +222,8 @@ async def main(page: ft.Page):
 
     def show(kind, subject=None):
         if kind in {"pos", "quote"} and not require_premium(kind):
+            return
+        if kind in {"income", "expense", "sale", "collect"} and not allow_cash_op():
             return
         if kind == "lookup":
             open_barcode_lookup()
@@ -169,6 +235,7 @@ async def main(page: ft.Page):
                 process_form,
                 evidence,
                 initial_type=kind if kind in {"income", "expense", "debt"} else "income",
+                recent_customers=recent_customer_names(),
             )
         else:
             show_form(page, kind, process_form, subject)
@@ -265,6 +332,8 @@ async def main(page: ft.Page):
             or workspace.get("profile", {}).get("email", "")
         )
         view_state["message"] = membership_client.message
+        # Mağaza incelemesi: aktivasyon kodu / web satın alma kapalı (StoreKit/Play Billing yokken).
+        allow_external_unlock = False
         business.show_membership(
             page,
             view_state,
@@ -273,11 +342,15 @@ async def main(page: ft.Page):
             refresh_membership_status,
             on_purchase=lambda: asyncio.create_task(purchase_premium()),
             billing_available=billing.available,
-            on_redeem=redeem_code,
+            on_redeem=redeem_code if allow_external_unlock else None,
             on_delete_account=delete_account,
             on_legal=open_legal,
-            on_web_pay=(lambda: asyncio.create_task(url_launcher.launch_url(PAYMENT_URL))) if PAYMENT_URL.startswith("https://") else None,
+            on_web_pay=(lambda: asyncio.create_task(url_launcher.launch_url(PAYMENT_URL)))
+            if allow_external_unlock and PAYMENT_URL.startswith("https://")
+            else None,
+            on_password_reset=request_password_reset,
             price_text=PRICE_TEXT,
+            show_redeem=allow_external_unlock,
         )
 
     def open_legal():
@@ -290,6 +363,16 @@ async def main(page: ft.Page):
         except MembershipApiError as error:
             set_status(str(error))
         refresh()
+
+    async def request_password_reset(email):
+        try:
+            result = await membership_client.request_password_reset(email)
+            set_status(result)
+            show_snack("Sıfırlama e-postası gönderildi")
+            return result
+        except MembershipApiError as error:
+            set_status(str(error))
+            raise
 
     def delete_account():
         async def do():
@@ -468,11 +551,6 @@ async def main(page: ft.Page):
             if kind in {"pos", "quote", "bank_import"} and not premium_active():
                 require_premium("Banka CSV" if kind == "bank_import" else kind)
                 return False
-            if kind in {"intake", "income", "expense", "debt", "collect", "sale"}:
-                month_key = date.today().strftime("%Y-%m")
-                month_count = sum(1 for item in records["transactions"] if item.get("date", "").startswith(month_key))
-                if not ensure_basic_capacity("monthly_transactions", month_count):
-                    return False
             if kind == "customer" and len(records["customers"]) >= BASIC_LIMITS["customers"] and not premium_active():
                 require_premium("Daha fazla müşteri kaydı")
                 return False
@@ -487,6 +565,8 @@ async def main(page: ft.Page):
                 entry_type = values["type"]
                 if entry_type not in {"income", "expense", "debt"}:
                     raise ValueError("Kayıt türünü seç.")
+                if entry_type != "debt" and not allow_cash_op():
+                    return f"Bu ay {FREE_CASH_OPS_MONTHLY} ücretsiz Aldım/Verdim hakkın doldu."
                 title = values["title"].strip() or ("Gelen para" if entry_type == "income" else "Giden para")
                 transaction_id = max((int(t.get("id", 0)) for t in records["transactions"]), default=0) + 1
                 transaction = {
@@ -541,6 +621,8 @@ async def main(page: ft.Page):
                     await save_evidence(preferences, evidence)
 
             elif kind in {"income", "expense"}:
+                if not allow_cash_op():
+                    return f"Bu ay {FREE_CASH_OPS_MONTHLY} ücretsiz Aldım/Verdim hakkın doldu."
                 amount = _number(values["amount"])
                 if amount <= 0:
                     raise ValueError("Tutar sıfırdan büyük olmalı.")
@@ -582,6 +664,8 @@ async def main(page: ft.Page):
                 )
 
             elif kind == "collect":
+                if not allow_cash_op():
+                    return f"Bu ay {FREE_CASH_OPS_MONTHLY} ücretsiz Aldım/Verdim hakkın doldu."
                 amount = _number(values["amount"])
                 if amount <= 0:
                     raise ValueError("Tahsilat tutarı sıfırdan büyük olmalı.")
@@ -591,6 +675,13 @@ async def main(page: ft.Page):
                 customer["balance"] -= amount
                 records["cash_balance"] += amount
                 records["transactions"].append({"id": _next_id(records["transactions"]), "type": "income", "title": f"Tahsilat · {customer['name']}", "amount": amount, "date": date.today().isoformat(), "customer_id": customer["id"], "collection": True})
+                paid_snapshot = {
+                    "name": customer["name"],
+                    "phone": customer.get("phone", ""),
+                    "balance": customer["balance"],
+                    "due_date": customer.get("due_date", ""),
+                }
+                paid_amount = amount
 
             elif kind == "customer":
                 name = values["name"].strip()
@@ -615,6 +706,8 @@ async def main(page: ft.Page):
                 records["products"].append({"id": _next_id(records["products"]), "name": name, "barcode": barcode, "qty": qty, "min_qty": min_qty, "price": price})
 
             elif kind == "sale":
+                if not allow_cash_op():
+                    return f"Bu ay {FREE_CASH_OPS_MONTHLY} ücretsiz Aldım/Verdim hakkın doldu."
                 product = next(p for p in records["products"] if p["id"] == subject["id"])
                 qty = _integer(values["qty"])
                 if qty <= 0:
@@ -661,10 +754,6 @@ async def main(page: ft.Page):
                 if not rows:
                     raise ValueError("CSV'de aktarılacak satır bulunamadı.")
                 for row in rows:
-                    month_key = str(row.get("date", date.today().isoformat()))[:7]
-                    month_count = sum(1 for item in records["transactions"] if item.get("date", "").startswith(month_key))
-                    if not ensure_basic_capacity("monthly_transactions", month_count):
-                        return False
                     amount = float(row["amount"])
                     entry_type = row["type"]
                     records["transactions"].append(
@@ -679,6 +768,8 @@ async def main(page: ft.Page):
                     records["cash_balance"] += amount if entry_type == "income" else -amount
 
             await persist()
+            if kind == "collect":
+                asyncio.create_task(offer_payment_received(paid_snapshot, paid_amount))
             return True
         except (ValueError, StopIteration, KeyError) as error:
             message = str(error) or "Bilgileri kontrol edip tekrar dene."
@@ -777,34 +868,77 @@ async def main(page: ft.Page):
         safe_name = "".join(ch if ch.isalnum() else "_" for ch in customer.get("name", "musteri"))[:40]
         await save_file(f"nakitce_ekstre_{safe_name}.pdf", pdf)
 
-    async def send_reminder(customer):
+    async def send_customer_message(customer, message, *, with_statement=True):
+        if not allow_whatsapp():
+            return False
         profile = workspace.get("profile", {})
-        message = whatsapp_reminder_message(customer, profile)
-        pdf = customer_statement_pdf(customer, records, profile)
+        pdf = customer_statement_pdf(customer, records, profile) if with_statement else None
         safe_name = "".join(ch if ch.isalnum() else "_" for ch in customer.get("name", "musteri"))[:40]
         file_name = f"nakitce_ekstre_{safe_name}.pdf"
+        opened = False
         try:
-            await share.share_files(
-                [ft.ShareFile(data=pdf, name=file_name, mime_type="application/pdf")],
-                text=message,
-                title="Nakitçe hesap ekstresi",
-                subject="Hesap ekstresi",
-            )
-            set_status("PDF ekstre paylaşıma hazır. WhatsApp'ı seçip göndermeden önce kontrol et.")
-            show_snack("Ekstre paylaşıldı · WhatsApp'ı seçebilirsin")
+            if pdf:
+                await share.share_files(
+                    [ft.ShareFile(data=pdf, name=file_name, mime_type="application/pdf")],
+                    text=message,
+                    title="Nakitçe",
+                    subject="Hesap ekstresi",
+                )
+            else:
+                await share.share_text(message, title="Nakitçe", subject="Ödeme alındı")
+            opened = True
+            set_status("Paylaşım açıldı. WhatsApp'ı seçip göndermeden önce kontrol et.")
+            show_snack("WhatsApp için paylaşım hazır")
         except Exception as error:
             log.warning("Share sheet failed: %s", error)
             phone = "".join(char for char in customer.get("phone", "") if char.isdigit())
             try:
-                await save_file(file_name, pdf)
+                if pdf:
+                    await save_file(file_name, pdf)
                 if phone:
                     await url_launcher.launch_url(f"https://wa.me/{phone}?text={quote(message)}")
-                    set_status("PDF kaydedildi ve WhatsApp mesajı açıldı. Ekstreyi sohbete ekleyebilirsin.")
+                    opened = True
+                    set_status("WhatsApp mesajı açıldı.")
                 else:
-                    set_status("PDF kaydedildi. Müşteri telefonu yok; WhatsApp için numara ekle.")
+                    set_status("Müşteri telefonu yok. WhatsApp için numara ekle.")
             except Exception as inner:
                 log.warning("WhatsApp fallback failed: %s", inner)
                 set_status("Paylaşım açılamadı. Telefon ve depolama izinlerini kontrol et.")
+        if opened:
+            note_whatsapp_send(workspace)
+            await save_workspace(preferences, workspace)
+            refresh()
+        return opened
+
+    async def send_reminder(customer):
+        profile = workspace.get("profile", {})
+        message = whatsapp_reminder_message(customer, profile)
+        await send_customer_message(customer, message, with_statement=True)
+
+    async def offer_payment_received(customer, amount):
+        await asyncio.sleep(0.25)
+        profile = workspace.get("profile", {})
+        message = whatsapp_payment_received_message(customer, amount, profile)
+
+        async def send(_):
+            page.pop_dialog()
+            await send_customer_message(customer, message, with_statement=False)
+
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Tahsilat kasaya yazıldı", color=INK, weight=ft.FontWeight.BOLD),
+                content=ft.Text(
+                    f"{customer['name']} için {amount:.2f} TL kasaya girdi. Kalan açık hesap {customer['balance']:.2f} TL. "
+                    "İstersen “ödemeniz alındı” mesajını WhatsApp’tan gönder.",
+                    color=MUTED,
+                ),
+                actions=[
+                    ft.TextButton(content="Şimdi değil", on_click=lambda e: page.pop_dialog()),
+                    ft.Button(content="WhatsApp ile gönder", on_click=send, bgcolor="#25D366", color="white"),
+                ],
+            )
+        )
 
     async def copy_gib_draft():
         profile = workspace.get("profile", {})
@@ -1010,7 +1144,7 @@ async def main(page: ft.Page):
         builders = {
             "home": lambda: dashboard.build(records, actions, view_workspace),
             "ledger": lambda: ledger.build(records, actions, evidence),
-            "customers": lambda: customers.build(records, actions),
+            "customers": lambda: customers.build(records, actions, view_workspace),
             "inventory": lambda: inventory.build(records, actions),
             "tools": lambda: tools.build(records, actions, cloud_sync.state, view_workspace),
         }

@@ -13,14 +13,14 @@ Nakitçe, muhasebe jargonu olmadan paranı yönetmen için dijital kasa defterid
 • Sesle komut: “Ahmet'e 450 TL veresiye yaz”
 • WhatsApp ile tek dokunuşta nazik PDF hesap ekstresi
 • Kamerayla fiş/fatura okuma (OCR) ve metinli PDF önerisi
-• Kritik günler: KDV, BA-BS, müşteri vadesi hatırlatmaları
+• Kritik günler: KDV, ay sonu evrak, müşteri vadesi hatırlatmaları
 • Stok, hızlı satış, pasta grafik
 • Kart/POS tahsilatının hesaba geçişini takip et (SoftPOS değildir)
 • Nakitçe bulutu (giriş + Premium; kendi Supabase açmana gerek yok)
 • Banka CSV içe aktar (Premium)
 • GİB e-Arşiv hazırlık panosu + resmi portal
 
-Serbest bölge ücretsizdir: kasa, veresiye, WhatsApp ekstre, OCR, stok. Premium; POS takibi, teklif, banka CSV, bulut ve 12 aylık grafik sunar. Play Billing bağlı değilse satın alma düğmesi gösterilmez.
+Serbest bölge: ayda 30 Aldım/Verdim ve 8 WhatsApp gönderimi ücretsizdir. Veresiye, fiş okuma ve stok sınırlı değildir. Premium; sınırsız kasa ve WhatsApp, POS takibi, teklif, banka CSV, bulut yedek ve 12 aylık grafik sunar. Play Billing bağlı değilse satın alma düğmesi gösterilmez.
 
 Notlar:
 • Nakitçe resmî muhasebe, SoftPOS veya GİB e-Fatura API'si değildir.
@@ -32,7 +32,8 @@ Notlar:
 Kategori önerisi: İş / Üretkenlik
 İçerik derecelendirmesi: Herkes (iş uygulaması; çocuklara yönelik değil)
 İletişim e-postası: teknolojimiras@gmail.com
-Gizlilik politikası: PRIVACY_POLICY_TR.md metnini HTTPS URL'de yayımlayıp buraya yapıştırın.
+Gizlilik politikası: https://abdullah-aktas.github.io/nakitce/privacy.html
+(Kaynak: docs/privacy.html · PRIVACY_POLICY_TR.md)
 
 Grafikler:
 • Uygulama simgesi: store/assets/icon_512.png (512×512)

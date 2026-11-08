@@ -14,7 +14,7 @@ Bu dosya Play Store hazırlığını tek yerde toplar. Yapıştırılabilir meti
 | Kontrol listesi | `store/console_checklist.md` |
 | AAB betiği | `scripts/build_play_aab.ps1` |
 | AAB çıktısı | `build/aab/nakitce.aab` (üretilmiş; Play için **upload keystore ile yeniden imzala**) |
-| Gizlilik metni | `PRIVACY_POLICY_TR.md` (HTTPS URL sen yayımlarsın) |
+| Gizlilik metni | `docs/privacy.html` → `https://abdullah-aktas.github.io/nakitce/privacy.html` |
 | Play Billing / ürün kimlikleri | Henüz bağlı değil — Premium’u üretim özelliği gibi sunma |
 
 ## 1. Mağaza varlıkları
@@ -76,7 +76,7 @@ Güncel Flet paketleme: https://flet.dev/docs/publish/android
 
 ## 5. Fiyat önerisi (taslak)
 
-- Temel: ücretsiz (30 hareket / 10 müşteri / 20 ürün / 3 hatırlatma)
+- Temel: ücretsiz (ayda 30 Aldım/Verdim, ayda 8 WhatsApp; veresiye sınırsız)
 - Premium: **₺99,99/ay** veya **₺999,99/yıl** (öneri; Play fiyatı bağlayıcıdır)
 
 ## 6. Bilinen sınırlar
