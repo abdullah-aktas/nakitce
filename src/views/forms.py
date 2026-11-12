@@ -18,17 +18,17 @@ FORM_FIELDS = {
 }
 
 FORM_TITLES = {
-    "income": "Gelen para ekle",
-    "expense": "Giden para ekle",
-    "debt": "Veresiye ekle",
-    "collect": "Tahsilat ekle",
+    "income": "Aldım",
+    "expense": "Verdim",
+    "debt": "Veresiye yaz",
+    "collect": "Tahsil et",
     "customer": "Müşteri ekle",
     "product": "Ürün / hizmet ekle",
     "sale": "Hızlı satış",
-    "lookup": "Barkodla ürün bul",
-    "opening": "Kasadaki parayı ayarla",
-    "pos": "POS ödemesi ekle",
-    "quote": "Hızlı teklif oluştur",
+    "lookup": "Barkodla bul",
+    "opening": "Kasadaki para",
+    "pos": "POS kaydı",
+    "quote": "Teklif oluştur",
 }
 
 

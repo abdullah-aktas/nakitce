@@ -106,9 +106,9 @@ async def main(page: ft.Page):
     active_tab = "home"
     services_ready = {"value": False}
 
-    content = ft.Container(expand=True, padding=18)
-    status_text = ft.Text("Çevrimdışı kayıt açık · bu cihazda saklanır", size=11, color=MUTED)
-    nav = ft.Container(bgcolor=WHITE, padding=ft.Padding.symmetric(horizontal=8, vertical=8))
+    content = ft.Container(expand=True, padding=ft.Padding.only(left=16, right=16, top=8, bottom=12))
+    status_text = ft.Text("Kayıtlar bu cihazda", size=11, color=MUTED)
+    nav = ft.Container(bgcolor=WHITE)
 
     def set_status(message):
         status_text.value = message
@@ -508,37 +508,46 @@ async def main(page: ft.Page):
         return dict(TABS).get(key, key)
 
     def render_nav():
-        nav.content = ft.Row(
-            spacing=4,
-            controls=[
-                ft.Container(
-                    expand=True,
-                    padding=ft.Padding.symmetric(vertical=8),
-                    border_radius=14,
-                    bgcolor=TEAL if key == active_tab else WHITE,
-                    on_click=lambda e, selected=key: select_tab(selected),
-                    tooltip=label,
-                    ink=True,
-                    content=ft.Column(
-                        spacing=2,
-                        tight=True,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[
-                            ft.Icon(TAB_ICONS[key], size=20, color=WHITE if key == active_tab else MUTED),
-                            ft.Text(
-                                label,
-                                color=WHITE if key == active_tab else MUTED,
-                                weight=ft.FontWeight.W_600,
-                                size=11,
-                                text_align=ft.TextAlign.CENTER,
-                                max_lines=1,
-                                overflow=ft.TextOverflow.ELLIPSIS,
-                            ),
-                        ],
-                    ),
-                )
-                for key, label in [(item[0], tab_label(item[0])) for item in TABS]
-            ],
+        nav.content = ft.Container(
+            bgcolor=WHITE,
+            border=ft.Border.only(top=ft.BorderSide(1, "#E4ECE9")),
+            padding=ft.Padding.only(left=6, right=6, top=6, bottom=10),
+            content=ft.Row(
+                spacing=2,
+                controls=[
+                    ft.Container(
+                        expand=True,
+                        padding=ft.Padding.symmetric(vertical=8),
+                        border_radius=16,
+                        bgcolor="#E8F7F2" if key == active_tab else None,
+                        on_click=lambda e, selected=key: select_tab(selected),
+                        tooltip=label,
+                        ink=True,
+                        content=ft.Column(
+                            spacing=3,
+                            tight=True,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[
+                                ft.Icon(
+                                    TAB_ICONS[key],
+                                    size=22,
+                                    color=TEAL if key == active_tab else MUTED,
+                                ),
+                                ft.Text(
+                                    label,
+                                    color=TEAL if key == active_tab else MUTED,
+                                    weight=ft.FontWeight.W_700 if key == active_tab else ft.FontWeight.W_500,
+                                    size=11,
+                                    text_align=ft.TextAlign.CENTER,
+                                    max_lines=1,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                ),
+                            ],
+                        ),
+                    )
+                    for key, label in [(item[0], tab_label(item[0])) for item in TABS]
+                ],
+            ),
         )
 
     def select_tab(selected):
@@ -1153,19 +1162,16 @@ async def main(page: ft.Page):
         page.update()
 
     header = ft.Container(
-        padding=ft.Padding.only(left=16, right=16, top=16, bottom=10),
-        gradient=ft.LinearGradient(
-            begin=ft.Alignment.TOP_LEFT,
-            end=ft.Alignment.BOTTOM_RIGHT,
-            colors=["#FFFFFF", "#E8F7F2"],
-        ),
+        padding=ft.Padding.only(left=16, right=12, top=14, bottom=8),
+        bgcolor=WHITE,
+        border=ft.Border.only(bottom=ft.BorderSide(1, "#E8EFEC")),
         content=ft.Row(
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Image(
                     src="icon.png",
-                    width=44,
-                    height=44,
+                    width=40,
+                    height=40,
                     fit=ft.BoxFit.CONTAIN,
                     semantics_label="Nakitçe",
                 ),
@@ -1173,21 +1179,31 @@ async def main(page: ft.Page):
                     spacing=0,
                     tight=True,
                     controls=[
-                        ft.Text("Nakitçe", size=22, weight=ft.FontWeight.BOLD, color=INK),
-                        ft.Text("Ticaretin kalbi", size=11, color=MUTED, weight=ft.FontWeight.W_600),
+                        ft.Text("Nakitçe", size=20, weight=ft.FontWeight.BOLD, color=INK),
+                        ft.Text("Cebindeki kasa", size=11, color=MUTED, weight=ft.FontWeight.W_600),
                     ],
                 ),
                 ft.Container(expand=True),
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=10, vertical=6),
-                    border_radius=999,
-                    bgcolor="#E8F7F2",
-                    content=ft.Text("Cebindeki kasa", color=TEAL, size=11, weight=ft.FontWeight.W_700),
+                ft.IconButton(
+                    icon=ft.Icons.MIC_NONE_ROUNDED,
+                    icon_color=TEAL,
+                    tooltip="Sesle / fişle kayıt",
+                    on_click=lambda e: show("intake"),
+                ),
+                ft.IconButton(
+                    icon=ft.Icons.PERSON_OUTLINE,
+                    icon_color=MUTED,
+                    tooltip="Üyelik",
+                    on_click=lambda e: open_membership(),
                 ),
             ],
         ),
     )
-    status_bar = ft.Container(padding=ft.Padding.symmetric(horizontal=18, vertical=5), content=status_text)
+    status_bar = ft.Container(
+        padding=ft.Padding.symmetric(horizontal=16, vertical=4),
+        content=status_text,
+        visible=True,
+    )
     root = ft.Column(expand=True, spacing=0, controls=[header, status_bar, content, nav])
     page.add(root)
     if seed_tax_reminders(workspace):

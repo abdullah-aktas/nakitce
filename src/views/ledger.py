@@ -1,6 +1,18 @@
 import flet as ft
 
-from views.common import INK, MUTED, RED, TEAL, action_button, big_choice, card, heading, money, section_label
+from views.common import (
+    INK,
+    MUTED,
+    RED,
+    TEAL,
+    action_button,
+    big_choice,
+    card,
+    empty_state,
+    heading,
+    money,
+    section_label,
+)
 
 
 def build(records, actions, evidence):
@@ -9,51 +21,56 @@ def build(records, actions, evidence):
     for item in transactions:
         incoming = item["type"] == "income"
         is_debt = item["type"] == "debt"
+        tone = TEAL if incoming else ("#D79A28" if is_debt else RED)
+        kind = "Aldım" if incoming else ("Veresiye" if is_debt else "Verdim")
         rows.append(
             card(
                 ft.Row(
+                    spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Container(
-                            width=10,
-                            height=48,
-                            border_radius=6,
-                            bgcolor=TEAL if incoming else ("#D79A28" if is_debt else RED),
-                        ),
+                        ft.Container(width=8, height=44, border_radius=8, bgcolor=tone),
                         ft.Column(
                             expand=True,
                             spacing=3,
                             controls=[
-                                ft.Text(item["title"], color=INK, weight=ft.FontWeight.W_600),
-                                ft.Text(
-                                    f"{item.get('date', '')} · {'Aldım' if incoming else ('Veresiye' if is_debt else 'Verdim')}",
-                                    color=MUTED,
-                                    size=12,
-                                ),
+                                ft.Text(item["title"], color=INK, weight=ft.FontWeight.W_600, size=15),
+                                ft.Text(f"{item.get('date', '')} · {kind}", color=MUTED, size=12),
                             ],
                         ),
-                        ft.Text(
-                            ("+ " if incoming else ("Veresiye · " if is_debt else "− ")) + money(item["amount"]),
-                            color=TEAL if incoming else ("#A66A08" if is_debt else RED),
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        *(
-                            [
-                                ft.TextButton(
-                                    content=f"Ekler ({len(evidence[str(item['id'])])})",
-                                    on_click=lambda e, transaction_id=item["id"]: actions["evidence"](transaction_id),
-                                )
-                            ]
-                            if str(item["id"]) in evidence
-                            else []
+                        ft.Column(
+                            horizontal_alignment=ft.CrossAxisAlignment.END,
+                            spacing=2,
+                            controls=[
+                                ft.Text(
+                                    ("+" if incoming else ("· " if is_debt else "−")) + money(item["amount"]),
+                                    color=tone,
+                                    weight=ft.FontWeight.BOLD,
+                                    size=15,
+                                ),
+                                *(
+                                    [
+                                        ft.TextButton(
+                                            content=f"Ek ({len(evidence[str(item['id'])])})",
+                                            on_click=lambda e, transaction_id=item["id"]: actions["evidence"](transaction_id),
+                                        )
+                                    ]
+                                    if str(item["id"]) in evidence
+                                    else []
+                                ),
+                            ],
                         ),
                         ft.IconButton(
                             icon=ft.Icons.DELETE_OUTLINE,
                             icon_color=MUTED,
-                            tooltip="Kaydı sil (yanlış girdiysen)",
+                            icon_size=20,
+                            tooltip="Kaydı sil",
                             on_click=lambda e, t=item: actions["delete_transaction"](t),
                         ),
                     ],
-                )
+                ),
+                padding=14,
+                radius=18,
             )
         )
     return ft.Column(
@@ -62,7 +79,7 @@ def build(records, actions, evidence):
         horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         spacing=14,
         controls=[
-            heading("Para hareketleri", "Defter tutar gibi: Aldım / Verdim."),
+            heading("Hareketler", "Kasaya giren ve çıkan para."),
             ft.Row(
                 spacing=10,
                 controls=[
@@ -71,14 +88,25 @@ def build(records, actions, evidence):
                 ],
             ),
             ft.Row(
-                wrap=True,
                 spacing=8,
                 controls=[
-                    action_button("Sesle / fişle kayıt", actions["intake"], primary=True),
-                    action_button("Veresiye", actions["debt"]),
+                    action_button("Sesle / fişle", actions["intake"], primary=True),
+                    action_button("Veresiye", actions["debt"], bgcolor="#FFF1D8"),
                 ],
             ),
-            section_label(f"Tüm hareketler · {len(transactions)} kayıt"),
-            *(rows or [card(ft.Text("Henüz hareket yok. İlk kaydı Aldım veya Verdim ile ekle.", color=MUTED))]),
+            section_label(f"Kayıtlar · {len(transactions)}"),
+            *(
+                rows
+                or [
+                    empty_state(
+                        "Henüz hareket yok",
+                        "İlk kaydı Aldım veya Verdim ile ekle.",
+                        button_label="Aldım",
+                        on_click=actions["income"],
+                        secondary_label="Verdim",
+                        on_secondary=actions["expense"],
+                    )
+                ]
+            ),
         ],
     )

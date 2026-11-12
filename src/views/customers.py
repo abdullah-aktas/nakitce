@@ -2,7 +2,21 @@ import flet as ft
 
 from free_quota import FREE_WHATSAPP_MONTHLY, whatsapp_used
 from membership import premium_access
-from views.common import AMBER_SOFT, INK, MINT, MUTED, TEAL, action_button, card, heading, money, section_label
+from views.common import (
+    AMBER_SOFT,
+    INK,
+    MINT,
+    MUTED,
+    TEAL,
+    WHITE,
+    action_button,
+    avatar,
+    card,
+    empty_state,
+    heading,
+    money,
+    section_label,
+)
 
 
 def build(records, actions, workspace=None):
@@ -12,7 +26,11 @@ def build(records, actions, workspace=None):
     rows = []
     open_balance = sum(c.get("balance", 0) for c in records["customers"] if c.get("balance", 0) > 0)
     debtor_count = sum(1 for c in records["customers"] if c.get("balance", 0) > 0)
-    for customer in records["customers"]:
+    ordered = sorted(
+        records["customers"],
+        key=lambda c: (0 if c.get("balance", 0) > 0 else 1, -(c.get("balance", 0) or 0), c.get("name", "")),
+    )
+    for customer in ordered:
         has_debt = customer["balance"] > 0
         due = customer.get("due_date") or ""
         rows.append(
@@ -21,34 +39,22 @@ def build(records, actions, workspace=None):
                     spacing=12,
                     controls=[
                         ft.Row(
+                            spacing=12,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
-                                ft.Container(
-                                    width=48,
-                                    height=48,
-                                    alignment=ft.Alignment.CENTER,
-                                    border_radius=16,
-                                    gradient=ft.LinearGradient(
-                                        colors=["#E8A317", "#C7922A"] if has_debt else ["#0F9B82", "#0B1C2C"]
-                                    ),
-                                    content=ft.Text(
-                                        customer["name"][:1].upper(),
-                                        color=INK if has_debt else "white",
-                                        weight=ft.FontWeight.BOLD,
-                                        size=18,
-                                    ),
-                                ),
+                                avatar(customer["name"][:1], owed=has_debt),
                                 ft.Column(
                                     expand=True,
                                     spacing=3,
                                     controls=[
                                         ft.Text(customer["name"], color=INK, weight=ft.FontWeight.W_700, size=16),
                                         ft.Text(
-                                            customer.get("phone") or "Telefon yok · WhatsApp için ekle",
+                                            customer.get("phone") or "Telefon yok",
                                             color=MUTED,
                                             size=12,
                                         ),
                                         ft.Text(
-                                            f"Vade: {due}" if due else "Vade belirtilmedi",
+                                            f"Vade {due}" if due else "Vade belirtilmedi",
                                             color="#C7922A" if has_debt else MUTED,
                                             size=11,
                                         ),
@@ -56,7 +62,7 @@ def build(records, actions, workspace=None):
                                 ),
                                 ft.Column(
                                     horizontal_alignment=ft.CrossAxisAlignment.END,
-                                    spacing=3,
+                                    spacing=2,
                                     controls=[
                                         ft.Text(
                                             money(customer["balance"]),
@@ -64,32 +70,43 @@ def build(records, actions, workspace=None):
                                             weight=ft.FontWeight.BOLD,
                                             size=18,
                                         ),
-                                        ft.Text("alacağım var" if has_debt else "temiz", color=MUTED, size=11),
+                                        ft.Text("alacak" if has_debt else "temiz", color=MUTED, size=11),
                                     ],
                                 ),
-                            ]
+                            ],
                         ),
                         ft.Row(
-                            wrap=True,
                             spacing=8,
                             controls=[
-                                ft.Button(
-                                    content="Tahsil et",
-                                    disabled=not has_debt,
-                                    on_click=lambda e, c=customer: actions["collect"](c),
-                                    bgcolor=MINT,
-                                    color=TEAL,
+                                ft.Container(
+                                    expand=True,
+                                    height=46,
+                                    border_radius=14,
+                                    bgcolor=MINT if has_debt else "#F2F5F4",
+                                    alignment=ft.Alignment.CENTER,
+                                    opacity=1 if has_debt else 0.55,
+                                    on_click=(lambda e, c=customer: actions["collect"](c)) if has_debt else None,
+                                    ink=has_debt,
+                                    content=ft.Text("Tahsil et", color=TEAL, weight=ft.FontWeight.W_700),
                                 ),
-                                ft.Button(
-                                    content="WhatsApp + PDF",
-                                    disabled=not has_debt,
-                                    on_click=lambda e, c=customer: actions["remind"](c),
-                                    bgcolor="#25D366",
-                                    color="white",
-                                    tooltip="Paylaşım sayfasından WhatsApp seç; telefonsuz da çalışır",
+                                ft.Container(
+                                    expand=True,
+                                    height=46,
+                                    border_radius=14,
+                                    bgcolor="#25D366" if has_debt else "#F2F5F4",
+                                    alignment=ft.Alignment.CENTER,
+                                    opacity=1 if has_debt else 0.55,
+                                    on_click=(lambda e, c=customer: actions["remind"](c)) if has_debt else None,
+                                    ink=has_debt,
+                                    content=ft.Text("WhatsApp", color=WHITE if has_debt else MUTED, weight=ft.FontWeight.W_700),
                                 ),
+                            ],
+                        ),
+                        ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            controls=[
                                 ft.TextButton(
-                                    content="Sadece PDF",
+                                    content="PDF ekstre",
                                     disabled=not has_debt,
                                     on_click=lambda e, c=customer: actions["statement_pdf"](c),
                                 ),
@@ -101,36 +118,39 @@ def build(records, actions, workspace=None):
                         ),
                     ],
                 ),
-                bgcolor=AMBER_SOFT if has_debt else "white",
+                bgcolor=AMBER_SOFT if has_debt else WHITE,
+                padding=16,
+                radius=20,
             )
         )
 
     hero = ft.Container(
-        padding=18,
-        border_radius=22,
+        padding=20,
+        border_radius=26,
         gradient=ft.LinearGradient(
             begin=ft.Alignment.TOP_LEFT,
             end=ft.Alignment.BOTTOM_RIGHT,
             colors=["#0B1C2C", "#0F4C45", "#0F9B82"],
         ),
         content=ft.Row(
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Column(
                     expand=True,
                     spacing=4,
                     controls=[
-                        ft.Text("Toplam açık hesap", color="#B7E8DC", size=12),
-                        ft.Text(money(open_balance), color="white", weight=ft.FontWeight.BOLD, size=30),
-                        ft.Text("Tek tuşla nazik WhatsApp ekstresi", color="#D7F5EE", size=12),
+                        ft.Text("Açık alacak", color="#B7E8DC", size=12),
+                        ft.Text(money(open_balance), color=WHITE, weight=ft.FontWeight.BOLD, size=32),
+                        ft.Text("WhatsApp ile nazik ekstre", color="#D7F5EE", size=12),
                     ],
                 ),
                 ft.Container(
                     padding=ft.Padding.symmetric(horizontal=12, vertical=8),
                     border_radius=999,
                     bgcolor="#FFFFFF22",
-                    content=ft.Text(f"{debtor_count} borçlu", color="white", weight=ft.FontWeight.W_700),
+                    content=ft.Text(f"{debtor_count} borçlu", color=WHITE, weight=ft.FontWeight.W_700),
                 ),
-            ]
+            ],
         ),
     )
 
@@ -141,33 +161,30 @@ def build(records, actions, workspace=None):
         spacing=14,
         controls=[
             heading(
-                "Veresiye defteri",
-                "Sınırsız WhatsApp ekstresi."
+                "Veresiye",
+                "Sınırsız WhatsApp."
                 if premium
-                else f"WhatsApp bu ay {min(wa_used, FREE_WHATSAPP_MONTHLY)}/{FREE_WHATSAPP_MONTHLY} ücretsiz. Veresiye yazmak sınırlı değil.",
+                else f"WhatsApp {min(wa_used, FREE_WHATSAPP_MONTHLY)}/{FREE_WHATSAPP_MONTHLY} · veresiye sınırsız",
             ),
             hero,
-            action_button("+ Müşteri ekle", actions["add"], primary=True),
-            section_label(f"Müşterilerim · {len(records['customers'])}"),
+            ft.Row(
+                spacing=8,
+                controls=[
+                    action_button("Veresiye yaz", actions["debt"], primary=True),
+                    action_button("+ Müşteri", actions["add"]),
+                ],
+            ),
+            section_label(f"Müşteriler · {len(records['customers'])}"),
             *(
                 rows
                 or [
-                    card(
-                        ft.Column(
-                            spacing=8,
-                            controls=[
-                                ft.Text("Henüz müşteri yok.", color=MUTED, size=13),
-                                ft.Text("Veresiye yazınca müşteri otomatik oluşur; istersen önce kart ekleyebilirsin.", color=MUTED, size=12),
-                                ft.Row(
-                                    wrap=True,
-                                    spacing=8,
-                                    controls=[
-                                        ft.Button(content="Veresiye yaz", on_click=actions["debt"], bgcolor=TEAL, color="white"),
-                                        ft.Button(content="+ Müşteri ekle", on_click=actions["add"]),
-                                    ],
-                                ),
-                            ],
-                        )
+                    empty_state(
+                        "Henüz müşteri yok",
+                        "Veresiye yazınca kart otomatik oluşur.",
+                        button_label="Veresiye yaz",
+                        on_click=actions["debt"],
+                        secondary_label="+ Müşteri ekle",
+                        on_secondary=actions["add"],
                     )
                 ]
             ),
